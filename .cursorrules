@@ -1,0 +1,28 @@
+# Standard Platform Blueprints — Cursor rules
+
+## What this repo is
+
+- **Blueprints** = example projects for deploying applications with the [GoCloud Standard Platform](https://github.com/gocloudLa/terraform-aws-standard-platform) (Terraform/Terragrunt on AWS).
+- Each blueprint documents an architecture pattern or app (n8n, WordPress, Moodle, etc.) on Project/Workload layers. Structure is generated with [GoCloud CLI](https://github.com/gocloudLa/gocloud-cli); blueprints have `gocloud.yaml` and often custom `main.tf`.
+
+## Blueprint layout
+
+- One folder per blueprint: `n8n-blueprint/`, `wordpress-blueprint/`, etc.
+- Contents: `gocloud.yaml`, `root.hcl`, `README.md` (often gocloud-generated), **`BLUEPRINT.md`** (manual, app-specific: secrets, env vars, DB, persistence, ALB/DNS, official doc links), plus `project/<project>/<env>/` and `workload/<workload>/<env>/`.
+
+## Docs style (match Standard Platform READMEs)
+
+- **Root README**: Badges (Latest Release, Last Commit, Terraform Registry). Sections with emoji: 🚀 intro, 🏗️ platform, 📋 blueprints, 🔜 coming soon, 🚀 quick start, 📁 structure, ⚠️ disclaimer. Footer: Authors, License, 🤝 Contributing, 🆘 Support (📧 Email, 🐛 Issues), 🧑‍💻 About (🌎, ☁️, 📫), then `---` and **Made with ❤️ by the GoCloud Team**.
+- **BLUEPRINT.md**: App-specific only. Use emoji headers (🎯 Overview, 📋 Prerequisites, 🔐 Secrets, 🗄️ Database, 📁 Persistence, 🌐 Env vars, 🔗 ALB/DNS, 📚 References). End with support line (web, email).
+- Don’t document in detail files with “DO NOT EDIT MANUALLY” banners.
+
+## Writing
+
+- **Language**: English. Correct syntax in code blocks; real paths/names from the repo. Use absolute URLs for GitHub/Registry/official docs.
+- **Disclaimer**: Root README must state use at your own risk.
+
+## Adding a blueprint
+
+1. Create `<name>-blueprint/`, add `gocloud.yaml` and project/workload (via gocloud if applicable).
+2. Add **BLUEPRINT.md** with app specifics.
+3. Update root README: new row in blueprints table and “Coming soon” if needed. Keep disclaimer.
