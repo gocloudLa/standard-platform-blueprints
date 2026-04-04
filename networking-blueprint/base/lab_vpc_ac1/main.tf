@@ -5,9 +5,9 @@
 # =============================================================================
 
 module "base" {
-  
+
   source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade"
-  
+
 
   /*----------------------------------------------------------------------*/
   /* General Variables                                                    */
@@ -139,7 +139,7 @@ module "base" {
       ## Managing TGW VPC Attachments
       vpc_attachments = {
         "production" = {
-          subnet_ids                                      = ["private-a", "private-b", "private-c"]
+          subnet_ids = ["private-a", "private-b", "private-c"]
           tgw_routes = [
             {
               destination_cidr_block = "10.30.0.0/16"

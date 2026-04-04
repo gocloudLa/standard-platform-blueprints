@@ -5,9 +5,9 @@
 # =============================================================================
 
 module "base" {
-  
+
   source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade"
-  
+
 
   /*----------------------------------------------------------------------*/
   /* General Variables                                                    */
@@ -138,10 +138,10 @@ module "base" {
       # create_tgw_routes = false
 
       # description                            = "Transit Gateway 01"
-      amazon_side_asn                        = "64512"
+      amazon_side_asn = "64512"
 
       ## Allow the sharing of the TGW using RAM
-      share_tgw = true
+      share_tgw      = true
       ram_principals = ["377730029539"]
       # ram_allow_external_principals = false
       # ram_name                      = null
