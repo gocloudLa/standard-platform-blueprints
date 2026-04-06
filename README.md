@@ -41,6 +41,7 @@ Each blueprint includes a `gocloud.yaml`, generated or adapted Terraform, and a 
 | Blueprint | Description | Documentation |
 |-----------|-------------|---------------|
 | **[n8n](./n8n-blueprint/)** | n8n on ECS Fargate with RDS PostgreSQL and EFS | 📖 [BLUEPRINT.md](./n8n-blueprint/BLUEPRINT.md) |
+| **[networking](./networking-blueprint/)** | Base networking: VPC (public/private), endpoints, Transit Gateway (RAM sharing), VPN , Route53, Cloud Map | 📖 [BLUEPRINT.md](./networking-blueprint/BLUEPRINT.md) |
 
 ### 🔜 Coming soon
 
