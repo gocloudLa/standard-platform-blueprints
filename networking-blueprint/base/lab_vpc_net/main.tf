@@ -185,7 +185,6 @@ module "base" {
     }
   }
 
-
   vpn_parameters = {
     "vpn-vpc" = {
       vpc = "networking" # Key into vpc_parameter (not vpc_name)
