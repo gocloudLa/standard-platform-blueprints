@@ -9,8 +9,9 @@ locals {
     aws_region  = "us-east-2"
     environment = "Lab VPC Net"
 
-    private_domain = "democorp"
-    public_domain  = "democorp.cloud"
+    internal_domain = "democorp.internal"
+    private_domain  = "democorp.private"
+    public_domain   = "democorp.cloud"
 
     key = {
       company = "dmc"

@@ -25,7 +25,8 @@ infrastructure:
   enable_secrets:  false
   metadata:
     public_domain: "democorp.cloud"
-    private_domain: "democorp"
+    private_domain: "democorp.private"
+    internal_domain: "democorp.internal"
   backend:
     pattern: tf-backend
     region: us-east-2
