@@ -6,8 +6,7 @@
 
 module "base" {
 
-  source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade"
-
+  source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade-peering"
 
   /*----------------------------------------------------------------------*/
   /* General Variables                                                    */
@@ -125,6 +124,21 @@ module "base" {
           service_type    = "Gateway"
           route_table_ids = ["private", "public"]
           policy          = data.aws_iam_policy_document.dynamodb_endpoint_policy.json
+        }
+      }
+    }
+  }
+
+  peering_parameters = {
+    "networking" = {
+      create_peer = false
+      auto_accept = true
+      peering_id = "pcx-04072a85cb8486acf"
+
+      vpc_routes = {
+        "networking" = {
+          "private" = { destination_cidr_block = [ "10.30.0.0/16" ] }
+          "public"  = { destination_cidr_block = [ "10.30.0.0/16" ] }
         }
       }
     }
