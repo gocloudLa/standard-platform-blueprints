@@ -8,7 +8,6 @@ module "base" {
 
   source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade-peering"
 
-
   /*----------------------------------------------------------------------*/
   /* General Variables                                                    */
   /*----------------------------------------------------------------------*/
@@ -247,18 +246,18 @@ module "base" {
     "production-00" = {
       # create_peer = true
       auto_accept = true
-      vpc = "production"
+      vpc         = "production"
       # vpc_id = "vpc-01234567890123456"
       vpc_accepter = "development"
       # vpc_acceper_id = "vpc-01234567890123456"
       vpc_routes = {
         "production" = {
-          "private" = { destination_cidr_block = [ local.vpc_cidr_development ] }
-          "public"  = { destination_cidr_block = [ local.vpc_cidr_development ] }
+          "private" = { destination_cidr_block = [local.vpc_cidr_development] }
+          "public"  = { destination_cidr_block = [local.vpc_cidr_development] }
         }
         "development" = {
-          "private" = { destination_cidr_block = [ local.vpc_cidr ] }
-          "public"  = { destination_cidr_block = [ local.vpc_cidr ] }
+          "private" = { destination_cidr_block = [local.vpc_cidr] }
+          "public"  = { destination_cidr_block = [local.vpc_cidr] }
         }
       }
     }
@@ -272,19 +271,19 @@ module "base" {
       # vpc_acceper_id = "vpc-01234567890123456"
       vpc_routes = {
         "production" = {
-          "private" = { destination_cidr_block = [ local.vpc_cidr_development ] }
-          "public"  = { destination_cidr_block = [ local.vpc_cidr_development ] }
+          "private" = { destination_cidr_block = [local.vpc_cidr_development] }
+          "public"  = { destination_cidr_block = [local.vpc_cidr_development] }
         }
       }
     }
     "production-02" = {
       create_peer = false
-      peering_id = "pcx-08b26c07642c513c2"
+      peering_id  = "pcx-08b26c07642c513c2"
       auto_accept = true
       vpc_routes = {
         "development" = {
-          "private" = { destination_cidr_block = [ local.vpc_cidr ] }
-          "public"  = { destination_cidr_block = [ local.vpc_cidr ] }
+          "private" = { destination_cidr_block = [local.vpc_cidr] }
+          "public"  = { destination_cidr_block = [local.vpc_cidr] }
         }
       }
     }
@@ -296,12 +295,12 @@ module "base" {
       # vpc_id = "vpc-01234567890123456"
 
       vpc_accepter_id = "vpc-0542320d57ec7d96e"
-      peer_owner_id = "511192438786"
-      
+      peer_owner_id   = "511192438786"
+
       vpc_routes = {
         "production" = {
-          "private" = { destination_cidr_block = [ "10.20.0.0/16" ] }
-          "public"  = { destination_cidr_block = [ "10.20.0.0/16" ] }
+          "private" = { destination_cidr_block = ["10.20.0.0/16"] }
+          "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
         }
       }
     }

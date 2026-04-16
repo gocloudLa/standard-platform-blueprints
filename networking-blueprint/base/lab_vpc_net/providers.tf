@@ -5,7 +5,7 @@
 
 
 provider "aws" {
-  region  = "${local.metadata.aws_region}"
+  region  = local.metadata.aws_region
   profile = "democorp.cloud-lv1"
 }
 

@@ -133,12 +133,12 @@ module "base" {
     "networking" = {
       create_peer = false
       auto_accept = true
-      peering_id = "pcx-04072a85cb8486acf"
+      peering_id  = "pcx-04072a85cb8486acf"
 
       vpc_routes = {
         "networking" = {
-          "private" = { destination_cidr_block = [ "10.30.0.0/16" ] }
-          "public"  = { destination_cidr_block = [ "10.30.0.0/16" ] }
+          "private" = { destination_cidr_block = ["10.30.0.0/16"] }
+          "public"  = { destination_cidr_block = ["10.30.0.0/16"] }
         }
       }
     }
@@ -215,11 +215,11 @@ module "base" {
         static_routes_only         = true
         static_routes_destinations = ["10.50.0.0/16"]
         # Prefer keys from vpc_parameter.route_tables (same as wrapper-vpc output keys, e.g. "{vpc_key}-private").
-        route_table_keys = ["networking-private", "networking-public"]
-        tunnel1_preshared_key                = "12345678" # local.secrets.vpn_preshared_key //if the preshared key is stored in a parameter or secret
-        tunnel1_cloudwatch_log_enabled       = true
-        tunnel2_preshared_key                = "12345678" # local.secrets.vpn_preshared_key
-        tunnel2_cloudwatch_log_enabled       = true
+        route_table_keys               = ["networking-private", "networking-public"]
+        tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key //if the preshared key is stored in a parameter or secret
+        tunnel1_cloudwatch_log_enabled = true
+        tunnel2_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
+        tunnel2_cloudwatch_log_enabled = true
       }
       vpc_routes = {
         "networking" = {
@@ -244,10 +244,10 @@ module "base" {
       vpn_connection = {
         # Customer side (this TGW VPN): 10.60.0.0/16. AWS side: 10.20.0.0/16 + 10.30.0.0/16 via TGW.
         # aws_vpn_connection allows only one remote_ipv4_network_cidr → aggregate 10.16.0.0/12 (covers 10.16–10.31).
-        local_ipv4_network_cidr  = "10.60.0.0/16"
+        local_ipv4_network_cidr = "10.60.0.0/16"
         # remote_ipv4_network_cidr = "0.0.0.0/0"
         # On-prem prefix toward the VPN attachment in the TGW route table (one entry per CIDR).
-        static_routes_only = true
+        static_routes_only             = true
         static_routes_destinations     = ["10.60.0.0/16"]
         route_table_keys               = []
         tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
