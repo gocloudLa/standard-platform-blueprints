@@ -21,7 +21,7 @@ infrastructure:
   # version: 0.26.0
   # Optional: Use custom Git source instead of registry
   source: "git@github.com:gocloudLa/terraform-aws-standard-platform.git"
-  source_ref: "feature/vpc-upgrade"
+  source_ref: "feature/vpc-upgrade-peering"
   enable_secrets:  false
   metadata:
     public_domain: "democorp.cloud"
@@ -40,6 +40,7 @@ infrastructure:
     sha:
       name: Shared
       aws_account: "112036182825"
+      enable_sso: false
       layers:
         base: false
         foundation: false
