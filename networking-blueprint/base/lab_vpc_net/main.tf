@@ -21,9 +21,17 @@ module "base" {
         "igw" = {}
       }
       nat_gateway = {
+        # "natgw" = {
+        #   subnet = "public-a"
+        #   kind   = "aws" # OPCION AWS
+        # }
         "natgw" = {
           subnet = "public-a"
-          kind   = "aws" # OPCION AWS
+          kind   = "ec2" # OPCION EC2
+          # create_nat_gateway = true
+          nat_parameters = {
+            ec2_nat_gateway_attach_eip = true
+          }
         }
       }
       route_table = {
@@ -31,7 +39,8 @@ module "base" {
           routes = {
           }
           default_route = {
-            nat_gateway = "natgw"
+            # nat_gateway = "natgw"
+            network_interface = "natgw"
           }
         }
         "public" = {
@@ -91,26 +100,6 @@ module "base" {
             network_acl = "public"
           }
         }
-        # "db" = {
-        #   "a" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 6)
-        #     az          = "a"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        #   "b" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 7)
-        #     az          = "b"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        #   "c" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 8)
-        #     az          = "c"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        # }
       }
       endpoints = {
         "00" = {
@@ -129,20 +118,24 @@ module "base" {
     }
   }
 
-  peering_parameters = {
-    "networking" = {
-      create_peer = false
-      auto_accept = true
-      peering_id  = "pcx-04072a85cb8486acf"
+  # peering_parameters = {
+  #   "net-with-dev" = {
+  #     create_peer = true
+  #     vpc = "production"
 
-      vpc_routes = {
-        "networking" = {
-          "private" = { destination_cidr_block = ["10.30.0.0/16"] }
-          "public"  = { destination_cidr_block = ["10.30.0.0/16"] }
-        }
-      }
-    }
-  }
+  #     # Remote side
+  #     vpc_accepter_id = "vpc-02xxxxxxxxxxxxx" 
+  #     peer_owner_id   = "377730029539" # Account ID of remote
+
+  #     vpc_routes = {
+  #       "production" = {
+  #         "private" = { destination_cidr_block = ["10.40.0.0/16"] }
+  #         "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
+  #       }
+  #     }
+  #   }
+  # }
+
 
   tgw_parameters = {
     "tgw-01" = {
@@ -199,64 +192,64 @@ module "base" {
     }
   }
 
-  vpn_parameters = {
-    "vpn-vpc" = {
-      vpc = "networking" # Key into vpc_parameter (not vpc_name)
-      virtual_private_gateway = {
-      }
-      customer_gateway = {
-        ip_address = "111.111.111.111" // Required, Public IP of client VPN 
-      }
-      # Tunnel resource settings; if omitted, null/default values apply
-      vpn_connection = {
-        local_ipv4_network_cidr  = "10.50.0.0/16" # External site cidr block
-        remote_ipv4_network_cidr = "10.20.0.0/16" # AWS cidr block
-        # On-prem prefixes AWS routes toward the tunnel (VGW + propagation into the RTs listed in route_table_keys).
-        static_routes_only         = true
-        static_routes_destinations = ["10.50.0.0/16"]
-        # Prefer keys from vpc_parameter.route_tables (same as wrapper-vpc output keys, e.g. "{vpc_key}-private").
-        route_table_keys               = ["networking-private", "networking-public"]
-        tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key //if the preshared key is stored in a parameter or secret
-        tunnel1_cloudwatch_log_enabled = true
-        tunnel2_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
-        tunnel2_cloudwatch_log_enabled = true
-      }
-      vpc_routes = {
-        "networking" = {
-          "private" = {
-            destination_cidr_block = ["10.50.10.0/24", "10.50.11.0/24"]
-          }
-          "public" = {
-            destination_cidr_block = ["10.50.10.0/24", "10.50.11.0/24"]
-          }
-        }
-      }
-    }
-    "vpn-tgw" = {
-      tgw = "tgw-01"
-      # transit_gateway_id             = null
-      # transit_gateway_route_table_id = null
-      virtual_private_gateway = null
-      customer_gateway = {
-        ip_address = "222.222.101.101" // Required, Public IP of client VPN 
-      }
-      # Tunnel resource settings; if omitted, null/default values apply
-      vpn_connection = {
-        # Customer side (this TGW VPN): 10.60.0.0/16. AWS side: 10.20.0.0/16 + 10.30.0.0/16 via TGW.
-        # aws_vpn_connection allows only one remote_ipv4_network_cidr → aggregate 10.16.0.0/12 (covers 10.16–10.31).
-        local_ipv4_network_cidr = "10.60.0.0/16"
-        # remote_ipv4_network_cidr = "0.0.0.0/0"
-        # On-prem prefix toward the VPN attachment in the TGW route table (one entry per CIDR).
-        static_routes_only             = true
-        static_routes_destinations     = ["10.60.0.0/16"]
-        route_table_keys               = []
-        tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
-        tunnel1_cloudwatch_log_enabled = true
-        tunnel2_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
-        tunnel2_cloudwatch_log_enabled = true
-      }
-    }
-  }
+  # vpn_parameters = {
+  #   "vpn-vpc" = {
+  #     vpc = "networking" # Key into vpc_parameter (not vpc_name)
+  #     virtual_private_gateway = {
+  #     }
+  #     customer_gateway = {
+  #       ip_address = "111.111.111.111" // Required, Public IP of client VPN 
+  #     }
+  #     # Tunnel resource settings; if omitted, null/default values apply
+  #     vpn_connection = {
+  #       local_ipv4_network_cidr  = "10.50.0.0/16" # External site cidr block
+  #       remote_ipv4_network_cidr = "10.20.0.0/16" # AWS cidr block
+  #       # On-prem prefixes AWS routes toward the tunnel (VGW + propagation into the RTs listed in route_table_keys).
+  #       static_routes_only         = true
+  #       static_routes_destinations = ["10.50.0.0/16"]
+  #       # Prefer keys from vpc_parameter.route_tables (same as wrapper-vpc output keys, e.g. "{vpc_key}-private").
+  #       route_table_keys               = ["networking-private", "networking-public"]
+  #       tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key //if the preshared key is stored in a parameter or secret
+  #       tunnel1_cloudwatch_log_enabled = true
+  #       tunnel2_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
+  #       tunnel2_cloudwatch_log_enabled = true
+  #     }
+  #     vpc_routes = {
+  #       "networking" = {
+  #         "private" = {
+  #           destination_cidr_block = ["10.50.10.0/24", "10.50.11.0/24"]
+  #         }
+  #         "public" = {
+  #           destination_cidr_block = ["10.50.10.0/24", "10.50.11.0/24"]
+  #         }
+  #       }
+  #     }
+  #   }
+  #   "vpn-tgw" = {
+  #     tgw = "tgw-01"
+  #     # transit_gateway_id             = null
+  #     # transit_gateway_route_table_id = null
+  #     virtual_private_gateway = null
+  #     customer_gateway = {
+  #       ip_address = "222.222.101.101" // Required, Public IP of client VPN 
+  #     }
+  #     # Tunnel resource settings; if omitted, null/default values apply
+  #     vpn_connection = {
+  #       # Customer side (this TGW VPN): 10.60.0.0/16. AWS side: 10.20.0.0/16 + 10.30.0.0/16 via TGW.
+  #       # aws_vpn_connection allows only one remote_ipv4_network_cidr → aggregate 10.16.0.0/12 (covers 10.16–10.31).
+  #       local_ipv4_network_cidr = "10.60.0.0/16"
+  #       # remote_ipv4_network_cidr = "0.0.0.0/0"
+  #       # On-prem prefix toward the VPN attachment in the TGW route table (one entry per CIDR).
+  #       static_routes_only             = true
+  #       static_routes_destinations     = ["10.60.0.0/16"]
+  #       route_table_keys               = []
+  #       tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
+  #       tunnel1_cloudwatch_log_enabled = true
+  #       tunnel2_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
+  #       tunnel2_cloudwatch_log_enabled = true
+  #     }
+  #   }
+  # }
 
   route53_parameters = {
     zones = {

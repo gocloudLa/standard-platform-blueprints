@@ -91,26 +91,6 @@ module "base" {
             network_acl = "public"
           }
         }
-        # "db" = {
-        #   "a" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 6)
-        #     az          = "a"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        #   "b" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 7)
-        #     az          = "b"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        #   "c" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 8)
-        #     az          = "c"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        # }
       }
       endpoints = {
         "00" = {
@@ -133,9 +113,17 @@ module "base" {
         "igw" = {}
       }
       nat_gateway = {
+        # "natgw" = {
+        #   subnet = "public-a"
+        #   kind   = "aws" # OPCION AWS
+        # }
         "natgw" = {
           subnet = "public-a"
-          kind   = "aws" # OPCION AWS
+          kind   = "ec2" # OPCION EC2
+          # create_nat_gateway = true
+          nat_parameters = {
+            ec2_nat_gateway_attach_eip = true
+          }
         }
       }
       route_table = {
@@ -143,7 +131,8 @@ module "base" {
           routes = {
           }
           default_route = {
-            nat_gateway = "natgw"
+            # nat_gateway = "natgw"
+            network_interface = "natgw"
           }
         }
         "public" = {
@@ -203,47 +192,14 @@ module "base" {
             network_acl = "public"
           }
         }
-        # "db" = {
-        #   "a" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 6)
-        #     az          = "a"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        #   "b" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 7)
-        #     az          = "b"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        #   "c" = {
-        #     cidr_block  = cidrsubnet("${local.vpc_cidr}", 4, 8)
-        #     az          = "c"
-        #     route_table = "private"
-        #     network_acl = "private"
-        #   }
-        # }
       }
-      endpoints = {
-        # "00" = {
-        #   service         = "s3"
-        #   service_type    = "Gateway"
-        #   route_table_ids = ["private", "public"]
-        #   policy          = data.aws_iam_policy_document.s3_endpoint_policy.json
-        # },
-        # "01" = {
-        #   service         = "dynamodb"
-        #   service_type    = "Gateway"
-        #   route_table_ids = ["private", "public"]
-        #   policy          = data.aws_iam_policy_document.dynamodb_endpoint_policy.json
-        # }
-      }
+      endpoints = {}
     }
   }
 
   peering_parameters = {
-    ### Same-Account & Same Region Peering ####
-    "production-00" = {
+    # Same account
+    "prd-with-dev" = {
       # create_peer = true
       auto_accept = true
       vpc         = "production"
@@ -262,86 +218,62 @@ module "base" {
       }
     }
 
-    ### Same-Account & auto-accept disabled Peering ####
-    "production=01" = {
-      # create_peer = true
-      vpc = "production"
-      # vpc_id = "vpc-01234567890123456"
-      vpc_accepter = "development"
-      # vpc_acceper_id = "vpc-01234567890123456"
-      vpc_routes = {
-        "production" = {
-          "private" = { destination_cidr_block = [local.vpc_cidr_development] }
-          "public"  = { destination_cidr_block = [local.vpc_cidr_development] }
-        }
-      }
-    }
-    "production-02" = {
-      create_peer = false
-      peering_id  = "pcx-08b26c07642c513c2"
-      auto_accept = true
-      vpc_routes = {
-        "development" = {
-          "private" = { destination_cidr_block = [local.vpc_cidr] }
-          "public"  = { destination_cidr_block = [local.vpc_cidr] }
-        }
-      }
-    }
-
     ### Different-Account ####
-    "production-03" = {
-      # create_peer = true
-      vpc = "production"
-      # vpc_id = "vpc-01234567890123456"
+    # "net-with-dev" = {
+    #   create_peer = false
+    #   vpc = "development"
 
-      vpc_accepter_id = "vpc-0542320d57ec7d96e"
-      peer_owner_id   = "511192438786"
+    #   # peering_id
 
-      vpc_routes = {
-        "production" = {
-          "private" = { destination_cidr_block = ["10.20.0.0/16"] }
-          "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
-        }
-      }
-    }
+
+    #   vpc_accepter_id = "vpc-0542320d57ec7d96e"
+    #   peer_owner_id   = "511192438786"
+
+    #   vpc_routes = {
+    #     "production" = {
+    #       "private" = { destination_cidr_block = ["10.20.0.0/16"] }
+    #       "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
+    #     }
+    #   }
+    # }
   }
 
-  tgw_parameters = {
-    "tgw-01" = {
-      create_tgw = false
-      # amazon_side_asn                        = ["64512"]
-      # Revisar que esto me da problema si lo pongo como sfgrint o como lista
+  # tgw_parameters = {
+  #   "tgw-01" = {
+  #     create_tgw = false
+  #     # amazon_side_asn                        = ["64512"]
+  #     # Revisar que esto me da problema si lo pongo como sfgrint o como lista
 
-      ## Managing TGW VPC Attachments
-      vpc_attachments = {
-        "production" = {
-          subnet_ids = ["private-a", "private-b", "private-c"]
-          tgw_routes = [
-            {
-              destination_cidr_block = "10.30.0.0/16"
+  #     ## Managing TGW VPC Attachments
+  #     vpc_attachments = {
+  #       "production" = {
+  #         subnet_ids = ["private-a", "private-b", "private-c"]
+  #         tgw_routes = [
+  #           {
+  #             destination_cidr_block = "10.30.0.0/16"
 
-            },
-            {
-              blackhole              = true
-              destination_cidr_block = "0.0.0.0/0"
-            }
-          ]
-        }
-      }
-      vpc_routes = {
-        "production" = {
-          "private" = {
-            destination_cidr_block = [
-              "10.20.0.0/16"
-            ]
-          }
-          "public" = {
-            destination_cidr_block = [
-              "10.20.0.0/16"
-            ]
-          }
-        }
-      }
-    }
-  }
+  #           },
+  #           {
+  #             blackhole              = true
+  #             destination_cidr_block = "0.0.0.0/0"
+  #           }
+  #         ]
+  #       }
+  #     }
+  #     vpc_routes = {
+  #       "production" = {
+  #         "private" = {
+  #           destination_cidr_block = [
+  #             "10.20.0.0/16"
+  #           ]
+  #         }
+  #         "public" = {
+  #           destination_cidr_block = [
+  #             "10.20.0.0/16"
+  #           ]
+  #         }
+  #       }
+  #     }
+  #   }
+  # }
 }
