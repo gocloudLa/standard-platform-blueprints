@@ -28,9 +28,14 @@ module "base" {
         "natgw" = {
           subnet = "public-a"
           kind   = "ec2" # OPCION EC2
-          # create_nat_gateway = true
           nat_parameters = {
-            ec2_nat_gateway_attach_eip = true
+            ec2_nat_gateway_attach_eip = true,
+            ingress_with_cidr_blocks = [
+              {
+                rule = "all-all",
+                cidr_blocks = "10.30.0.0/16,10.40.0.0/16,10.50.0.0/16,10.60.0.0/16"
+              }
+            ]
           }
         }
       }
@@ -118,23 +123,26 @@ module "base" {
     }
   }
 
-  # peering_parameters = {
-  #   "net-with-dev" = {
-  #     create_peer = true
-  #     vpc = "production"
+  peering_parameters = {
+    # Cross Account
+    "net-with-dev" = {
+      create_peer = true
+      vpc = "networking"
 
-  #     # Remote side
-  #     vpc_accepter_id = "vpc-02xxxxxxxxxxxxx" 
-  #     peer_owner_id   = "377730029539" # Account ID of remote
+      # auto_accept = true
 
-  #     vpc_routes = {
-  #       "production" = {
-  #         "private" = { destination_cidr_block = ["10.40.0.0/16"] }
-  #         "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
-  #       }
-  #     }
-  #   }
-  # }
+      # Remote side
+      vpc_accepter_id = "vpc-00e683d3d16451940" 
+      peer_owner_id   = "377730029539" # Account ID of remote
+
+      vpc_routes = {
+        "networking" = {
+          "private" = { destination_cidr_block = ["10.40.0.0/16"] }
+          "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
+        }
+      }
+    }
+  }
 
 
   tgw_parameters = {

@@ -120,9 +120,14 @@ module "base" {
         "natgw" = {
           subnet = "public-a"
           kind   = "ec2" # OPCION EC2
-          # create_nat_gateway = true
           nat_parameters = {
-            ec2_nat_gateway_attach_eip = true
+            ec2_nat_gateway_attach_eip = true,
+            ingress_with_cidr_blocks = [
+              {
+                rule = "all-all",
+                cidr_blocks = "10.20.0.0/16,10.30.0.0/16,10.50.0.0/16,10.60.0.0/16"
+              }
+            ]
           }
         }
       }
@@ -198,7 +203,7 @@ module "base" {
   }
 
   peering_parameters = {
-    # Same account
+    # Same Account
     "prd-with-dev" = {
       # create_peer = true
       auto_accept = true
@@ -218,24 +223,22 @@ module "base" {
       }
     }
 
-    ### Different-Account ####
-    # "net-with-dev" = {
-    #   create_peer = false
-    #   vpc = "development"
+    # Cross Account
+    "net-with-dev" = {
+      create_peer = false
+      vpc = "development"
 
-    #   # peering_id
+      auto_accept = true
 
+      peering_id = "pcx-03165979e197ddff3"
 
-    #   vpc_accepter_id = "vpc-0542320d57ec7d96e"
-    #   peer_owner_id   = "511192438786"
-
-    #   vpc_routes = {
-    #     "production" = {
-    #       "private" = { destination_cidr_block = ["10.20.0.0/16"] }
-    #       "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
-    #     }
-    #   }
-    # }
+      vpc_routes = {
+        "development" = {
+          "private" = { destination_cidr_block = ["10.20.0.0/16"] }
+          "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
+        }
+      }
+    }
   }
 
   # tgw_parameters = {
