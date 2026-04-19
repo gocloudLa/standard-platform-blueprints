@@ -33,7 +33,7 @@ module "base" {
             ingress_with_cidr_blocks = [
               {
                 rule = "all-all",
-                cidr_blocks = "10.30.0.0/16,10.40.0.0/16,10.50.0.0/16,10.60.0.0/16"
+                cidr_blocks = "10.20.0.0/16,10.30.0.0/16,10.40.0.0/16,10.50.0.0/16,10.60.0.0/16"
               }
             ]
           }
@@ -123,26 +123,26 @@ module "base" {
     }
   }
 
-  peering_parameters = {
-    # Cross Account
-    "net-with-dev" = {
-      create_peer = true
-      vpc = "networking"
+  # peering_parameters = {
+  #   # Cross Account
+  #   "net-with-dev" = {
+  #     create_peer = true
+  #     vpc = "networking"
 
-      # auto_accept = true
+  #     # auto_accept = true
 
-      # Remote side
-      vpc_accepter_id = "vpc-00e683d3d16451940" 
-      peer_owner_id   = "377730029539" # Account ID of remote
+  #     # Remote side
+  #     vpc_accepter_id = "vpc-00e683d3d16451940" 
+  #     peer_owner_id   = "377730029539" # Account ID of remote
 
-      vpc_routes = {
-        "networking" = {
-          "private" = { destination_cidr_block = ["10.40.0.0/16"] }
-          "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
-        }
-      }
-    }
-  }
+  #     vpc_routes = {
+  #       "networking" = {
+  #         "private" = { destination_cidr_block = ["10.40.0.0/16"] }
+  #         "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
+  #       }
+  #     }
+  #   }
+  # }
 
 
   tgw_parameters = {

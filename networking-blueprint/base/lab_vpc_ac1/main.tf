@@ -109,6 +109,7 @@ module "base" {
     }
     "development" = {
       vpc_cidr = "${local.vpc_cidr_development}"
+      custom_common_name = "${local.common_name}-dev"
       internet_gateway = {
         "igw" = {}
       }
@@ -125,7 +126,7 @@ module "base" {
             ingress_with_cidr_blocks = [
               {
                 rule = "all-all",
-                cidr_blocks = "10.20.0.0/16,10.30.0.0/16,10.50.0.0/16,10.60.0.0/16"
+                cidr_blocks = "10.20.0.0/16,10.30.0.0/16,10.40.0.0/16,10.50.0.0/16,10.60.0.0/16"
               }
             ]
           }
