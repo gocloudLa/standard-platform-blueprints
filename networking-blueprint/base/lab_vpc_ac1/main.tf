@@ -204,42 +204,49 @@ module "base" {
   }
 
   peering_parameters = {
-    # Same Account
-    "prd-with-dev" = {
-      # create_peer = true
-      auto_accept = true
-      vpc         = "production"
-      # vpc_id = "vpc-01234567890123456"
-      vpc_accepter = "development"
-      # vpc_acceper_id = "vpc-01234567890123456"
-      vpc_routes = {
-        "production" = {
-          "private" = { destination_cidr_block = [local.vpc_cidr_development] }
-          "public"  = { destination_cidr_block = [local.vpc_cidr_development] }
-        }
-        "development" = {
-          "private" = { destination_cidr_block = [local.vpc_cidr] }
-          "public"  = { destination_cidr_block = [local.vpc_cidr] }
-        }
-      }
-    }
+    # # Same Account
+    # "prd-with-dev" = {
+    #   # create_peer = true
+    #   auto_accept = true
+    #   vpc         = "production"
+    #   # vpc_id = "vpc-01234567890123456"
+    #   vpc_accepter = "development"
+    #   # vpc_acceper_id = "vpc-01234567890123456"
+    #   vpc_routes = {
+    #     "production" = {
+    #       "private" = { destination_cidr_block = [local.vpc_cidr_development] }
+    #       "public"  = { destination_cidr_block = [local.vpc_cidr_development] }
+    #     }
+    #     "development" = {
+    #       "private" = { destination_cidr_block = [local.vpc_cidr] }
+    #       "public"  = { destination_cidr_block = [local.vpc_cidr] }
+    #     }
+    #   }
+    # }
 
-    # Cross Account
-    "net-with-dev" = {
-      create_peer = false
-      vpc = "development"
+    # # Cross Account ( Must apply after vpc creation)
+    # "net-with-dev" = {
+    #   create_peer = false
+    #   vpc = "development"
 
-      auto_accept = true
+    #   # requester = {
+    #   #   allow_remote_vpc_dns_resolution = true
+    #   # }
+    #   # accepter = {
+    #   #   allow_remote_vpc_dns_resolution = true
+    #   # }
 
-      peering_id = "pcx-03165979e197ddff3"
+    #   auto_accept = true
 
-      vpc_routes = {
-        "development" = {
-          "private" = { destination_cidr_block = ["10.20.0.0/16"] }
-          "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
-        }
-      }
-    }
+    #   peering_id = "pcx-0f867af7fee4963c1"
+
+    #   vpc_routes = {
+    #     "development" = {
+    #       "private" = { destination_cidr_block = ["10.20.0.0/16"] }
+    #       "public"  = { destination_cidr_block = ["10.20.0.0/16"] }
+    #     }
+    #   }
+    # }
   }
 
   # tgw_parameters = {

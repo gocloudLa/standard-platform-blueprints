@@ -123,26 +123,35 @@ module "base" {
     }
   }
 
-  # peering_parameters = {
-  #   # Cross Account
-  #   "net-with-dev" = {
-  #     create_peer = true
-  #     vpc = "networking"
+  peering_parameters = {
+    # # Cross Account ( Must apply after vpc creation)
+    # "net-with-dev" = {
+    #   create_peer = true
+    #   vpc = "networking"
 
-  #     # auto_accept = true
+    #   # requester = {
+    #   #   allow_remote_vpc_dns_resolution = true
+    #   # }
+    #   # # ~ requester {
+    #   # #     ~ allow_remote_vpc_dns_resolution = false -> true
+    #   # #   }
+    #   # # Does not have permission to modify the accepter side peering options
+    #   # # accepter = {
+    #   # #   allow_remote_vpc_dns_resolution = true
+    #   # # }
 
-  #     # Remote side
-  #     vpc_accepter_id = "vpc-00e683d3d16451940" 
-  #     peer_owner_id   = "377730029539" # Account ID of remote
+    #   # Remote side
+    #   vpc_accepter_id = "vpc-06a4a7780e388980d" 
+    #   peer_owner_id   = "377730029539" # Account ID of remote
 
-  #     vpc_routes = {
-  #       "networking" = {
-  #         "private" = { destination_cidr_block = ["10.40.0.0/16"] }
-  #         "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
-  #       }
-  #     }
-  #   }
-  # }
+    #   vpc_routes = {
+    #     "networking" = {
+    #       "private" = { destination_cidr_block = ["10.40.0.0/16"] }
+    #       "public"  = { destination_cidr_block = ["10.40.0.0/16"] }
+    #     }
+    #   }
+    # }
+  }
 
 
   tgw_parameters = {
