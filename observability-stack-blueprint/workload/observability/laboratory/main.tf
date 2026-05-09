@@ -250,18 +250,20 @@ module "workload" {
                 ring:
                   replication_factor: 1
                   kvstore:
-                    store: memberlist
+                    store: inmemory
 
               store_gateway:
                 sharding_ring:
                   replication_factor: 1
                   kvstore:
-                    store: memberlist
+                    store: inmemory
+                  wait_stability_min_duration: 0s
+                  wait_stability_max_duration: 0s
 
               compactor:
                 sharding_ring:
                   kvstore:
-                    store: memberlist
+                    store: inmemory
                 data_dir: /tmp/data/compactor
 
               common:
@@ -280,8 +282,12 @@ module "workload" {
                   endpoint: s3.${local.metadata.aws_region}.amazonaws.com
                 tsdb:
                   dir: /tmp/data/tsdb
+                  block_ranges_period: [30m]
+                  ship_interval: 1m
+                  head_compaction_interval: 5m
                 bucket_store:
                   sync_dir: /tmp/data/tsdb-sync
+                  sync_interval: 5m
 
               ruler_storage:
                 backend: filesystem
@@ -415,6 +421,278 @@ module "workload" {
 
           entrypoint = [""]
           command    = ["/bin/sh", "-c", "eval \"$COMMAND\""]
+        }
+      }
+    }
+
+    alloy = {
+      enable_autoscaling = false
+      cpu                = 256
+      memory             = 512
+
+      capacity_provider_strategy = {
+        default = {
+          base              = null
+          capacity_provider = "FARGATE_SPOT"
+          weight            = 100
+        }
+      }
+
+      containers = {
+        app = {
+          image                 = "public.ecr.aws/docker/library/alpine:3.21"
+          create_ecr_repository = false
+
+          ports = {
+            "p1" = {
+              container_port = 12347
+              load_balancer = {
+                "l1" = {
+                  alb_name          = data.aws_lb.public_alb.name
+                  alb_listener_port = 443
+                  health_check = {
+                    path    = "/collect"
+                    matcher = "200,404,405"
+                  }
+                  dns_records = {
+                    "alloy" = {
+                      zone_name    = "${local.zone_public}"
+                      private_zone = false
+                    }
+                  }
+                  listener_rules = {
+                    "r1" = {
+                      priority = 350
+                      conditions = [
+                        {
+                          host_headers = ["alloy.${local.zone_public}"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          map_environment = {
+            "CONFIG_FILE" = <<-EOT
+              faro.receiver "default" {
+                server {
+                  listen_address           = "0.0.0.0"
+                  listen_port              = 12347
+                  cors_allowed_origins     = ["*"]
+                  max_allowed_payload_size = "10MiB"
+                }
+
+                extra_log_labels = {
+                  app_name        = "",
+                  app_environment = "",
+                  app_namespace   = "",
+                  app_version     = "",
+                  source          = "faro",
+                }
+
+                log_format = "json"
+
+                output {
+                  logs   = [loki.write.default.receiver]
+                  traces = [otelcol.exporter.otlp.tempo.input]
+                }
+              }
+
+              loki.write "default" {
+                endpoint {
+                  url = "http://loki.${local.zone_internal}:3100/loki/api/v1/push"
+                }
+              }
+
+              otelcol.exporter.otlp "tempo" {
+                client {
+                  endpoint = "tempo.${local.zone_internal}:4317"
+                  tls {
+                    insecure = true
+                  }
+                }
+              }
+            EOT
+            "COMMAND" = <<-EOT
+              set -e
+              apk add --no-cache wget gcompat
+              wget -q -O /tmp/alloy.zip https://github.com/grafana/alloy/releases/download/v1.16.1/alloy-linux-amd64.zip
+              unzip /tmp/alloy.zip -d /tmp
+              chmod +x /tmp/alloy-linux-amd64
+              mkdir -p /tmp/alloy-data
+              echo "$CONFIG_FILE" > /tmp/config.alloy
+              exec /tmp/alloy-linux-amd64 run /tmp/config.alloy --storage.path=/tmp/alloy-data --server.http.listen-addr=0.0.0.0:12345
+            EOT
+          }
+
+          entrypoint = [""]
+          command    = ["/bin/sh", "-c", "eval \"$COMMAND\""]
+        }
+      }
+    }
+
+    demo-frontend = {
+      enable_autoscaling = false
+      cpu                = 256
+      memory             = 512
+
+      capacity_provider_strategy = {
+        default = {
+          base              = null
+          capacity_provider = "FARGATE_SPOT"
+          weight            = 100
+        }
+      }
+
+      containers = {
+        app = {
+          image                 = "public.ecr.aws/docker/library/nginx:alpine"
+          create_ecr_repository = false
+
+          ports = {
+            "p1" = {
+              container_port = 80
+              load_balancer = {
+                "l1" = {
+                  alb_name          = data.aws_lb.public_alb.name
+                  alb_listener_port = 443
+                  health_check = {
+                    path    = "/"
+                    matcher = "200"
+                  }
+                  dns_records = {
+                    "demo-frontend" = {
+                      zone_name    = "${local.zone_public}"
+                      private_zone = false
+                    }
+                  }
+                  listener_rules = {
+                    "r1" = {
+                      priority = 360
+                      conditions = [
+                        {
+                          host_headers = ["demo-frontend.${local.zone_public}"]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          map_environment = {
+            "CONFIG_FILE" = <<-EOT
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Demo Frontend — Faro RUM</title>
+                <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+                  .card { background: #16213e; border-radius: 12px; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+                  h1 { color: #f77f00; margin-bottom: 1rem; }
+                  p { line-height: 1.6; margin-bottom: 1rem; color: #ccc; }
+                  .btn { display: inline-block; padding: 0.75rem 1.5rem; margin: 0.5rem 0.5rem 0.5rem 0; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: transform 0.1s; }
+                  .btn:active { transform: scale(0.95); }
+                  .btn-error { background: #e63946; color: white; }
+                  .btn-log { background: #457b9d; color: white; }
+                  .btn-fetch { background: #2a9d8f; color: white; }
+                  .btn-nav { background: #e9c46a; color: #1a1a2e; }
+                  #output { margin-top: 1rem; padding: 1rem; background: #0f3460; border-radius: 8px; font-family: monospace; font-size: 0.85rem; min-height: 60px; white-space: pre-wrap; }
+                  .status { margin-top: 1rem; padding: 0.5rem 1rem; background: #2a9d8f22; border: 1px solid #2a9d8f; border-radius: 6px; font-size: 0.8rem; }
+                </style>
+                <script>
+                  window.initFaro = function() {
+                    window.faro = window.GrafanaFaroWebSdk.initializeFaro({
+                      url: 'https://alloy.${local.zone_public}/collect',
+                      app: { name: 'demo-frontend', version: '1.0.0', environment: 'laboratory' },
+                      instrumentations: [
+                        ...window.GrafanaFaroWebSdk.getWebInstrumentations({ captureConsole: true }),
+                      ],
+                    });
+                    document.getElementById('status').textContent = 'Faro SDK initialized — sending telemetry to Alloy';
+                  };
+                  window.addFaroTracing = function() {
+                    if (window.faro) {
+                      window.faro.instrumentations.add(new window.GrafanaFaroWebTracing.TracingInstrumentation());
+                      document.getElementById('status').textContent += ' | Tracing enabled';
+                    }
+                  };
+                </script>
+              </head>
+              <body>
+                <div class="card">
+                  <h1>Demo Frontend — Faro RUM</h1>
+                  <p>This page is instrumented with Grafana Faro Web SDK. It sends Web Vitals, errors, console logs, and traces to Grafana Alloy.</p>
+                  <button class="btn btn-error" onclick="throwError()">Throw Error</button>
+                  <button class="btn btn-log" onclick="sendLog()">Console Log</button>
+                  <button class="btn btn-fetch" onclick="doFetch()">Fetch API Call</button>
+                  <button class="btn btn-error" onclick="fetchWithError()">Fetch + Error</button>
+                  <button class="btn btn-nav" onclick="simulateNav()">Simulate Navigation</button>
+                  <div id="output">Ready. Click buttons to generate telemetry...</div>
+                  <div class="status" id="status">Loading Faro SDK...</div>
+                </div>
+                <script>
+                  function log(msg) { document.getElementById('output').textContent = new Date().toISOString() + ' ' + msg; }
+                  function throwError() { try { undefinedFunction(); } catch(e) { window.faro && window.faro.api.pushError(e); log('Error thrown and reported to Faro'); } }
+                  function sendLog() { console.log('User action: manual log at ' + new Date().toISOString()); log('Console.log sent (captured by Faro)'); }
+                  function doFetch() { fetch('https://httpbin.org/delay/1').then(r => { log('Fetch completed: ' + r.status); }).catch(e => { log('Fetch failed: ' + e.message); }); }
+                  function fetchWithError() { fetch('https://httpbin.org/json').then(r => r.json()).then(data => { data.nonExistent.property; }).catch(e => { log('Fetch + Error: ' + e.message); }); }
+                  function simulateNav() { history.pushState({}, '', '/page-' + Math.floor(Math.random()*100)); log('Navigation event: ' + location.pathname); setTimeout(() => history.pushState({}, '', '/'), 1000); }
+                </script>
+                <script src="https://unpkg.com/@grafana/faro-web-sdk@^1.0.0/dist/bundle/faro-web-sdk.iife.js" onload="window.initFaro()"></script>
+                <script src="https://unpkg.com/@grafana/faro-web-tracing@^1.0.0/dist/bundle/faro-web-tracing.iife.js" onload="window.addFaroTracing()"></script>
+              </body>
+              </html>
+            EOT
+            "COMMAND" = <<-EOT
+              set -e
+              echo "$CONFIG_FILE" > /usr/share/nginx/html/index.html
+              exec nginx -g 'daemon off;'
+            EOT
+          }
+
+          entrypoint = [""]
+          command    = ["/bin/sh", "-c", "eval \"$COMMAND\""]
+        }
+
+        otel-sidecar = {
+          image                 = "public.ecr.aws/aws-observability/aws-otel-collector:v0.43.3"
+          create_ecr_repository = false
+
+          ports = {
+            "otlp_grpc" = { container_port = 4317 }
+            "otlp_http" = { container_port = 4318 }
+          }
+
+          map_environment = {
+            "AOT_CONFIG_CONTENT" = <<-EOT
+              receivers:
+                awsecscontainermetrics:
+
+              processors:
+                batch:
+
+              exporters:
+                prometheusremotewrite:
+                  endpoint: http://mimir.${local.zone_internal}:9009/api/v1/push
+                  resource_to_telemetry_conversion:
+                    enabled: true
+
+              service:
+                pipelines:
+                  metrics:
+                    receivers: [awsecscontainermetrics]
+                    processors: [batch]
+                    exporters: [prometheusremotewrite]
+            EOT
+          }
         }
       }
     }
@@ -758,8 +1036,10 @@ module "workload" {
             OTEL_TRACES_SAMPLER            = "always_on"
             "COMMAND" = <<-EOT
               set -e
+              apk add --no-cache autoconf gcc g++ make php83-dev php83-openssl php83-curl composer
               pecl install opentelemetry
               docker-php-ext-enable opentelemetry
+              mkdir -p /tmp/app
               composer require --ignore-platform-reqs --working-dir=/tmp/app \
                 open-telemetry/sdk \
                 open-telemetry/exporter-otlp \

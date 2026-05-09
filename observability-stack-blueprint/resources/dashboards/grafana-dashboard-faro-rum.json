@@ -1,0 +1,288 @@
+{
+  "annotations": { "list": [] },
+  "description": "RUM con Grafana Faro: Web Vitals desde Loki (kind=measurement), red y excepciones como eventos. Loki, Tempo y el service.name usado en la tabla de trazas están fijos (datasources por defecto de la organización). Solo el filtro Application es visible. Las medias usan avg/quantile sobre el rango seleccionado — son representativas si hay tráfico estable; con pocas muestras pueden verse picos dispersos (scatter) en las series temporales. Trace ID en logs: los derived fields del datasource Loki enlazan a Tempo al abrir el detalle de una línea; en fetch suele haber ID, en excepciones capturadas con pushError a menudo no hay span activo (trace vacío es esperable).",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "Executive health",
+      "type": "link",
+      "url": "/d/obs-exec-health-v1"
+    },
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "Observability — Integral",
+      "type": "link",
+      "url": "/d/obs-integral-lab-v4"
+    }
+  ],
+  "panels": [
+    {
+      "title": "⚡ Performance — Web Vitals",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "TTFB",
+      "description": "Time to First Byte — time from navigation start until the browser receives the first byte from the server. Good: <800ms, Poor: >1800ms.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_ttfb > 0 | unwrap value_ttfb | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 800 }, { "color": "red", "value": 1800 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "FCP",
+      "description": "First Contentful Paint — time until the browser renders the first piece of content (text, image, etc). Good: <1800ms, Poor: >3000ms.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_fcp > 0 | unwrap value_fcp | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1800 }, { "color": "red", "value": 3000 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "LCP",
+      "description": "Largest Contentful Paint — time until the largest visible element is rendered. This is the main indicator of perceived load speed. Good: <2500ms, Poor: >4000ms.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_lcp > 0 | unwrap value_lcp | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2500 }, { "color": "red", "value": 4000 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "CLS",
+      "description": "Cumulative Layout Shift — measures visual stability. How much the page layout shifts unexpectedly during loading. Good: <0.1, Poor: >0.25. Lower is better.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | unwrap value_cls | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 4, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.1 }, { "color": "red", "value": 0.25 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "FID",
+      "description": "First Input Delay — time from when the user first interacts (click, tap) until the browser can respond. Good: <100ms, Poor: >300ms.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_fid > 0 | unwrap value_fid | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 300 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "INP",
+      "description": "Interaction to Next Paint — measures responsiveness to all user interactions throughout the page lifecycle. Replaces FID as the primary responsiveness metric. Good: <200ms, Poor: >500ms.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_inp > 0 | unwrap value_inp | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Page Load Over Time (TTFB / FCP / LCP)",
+      "description": "p75 de métricas por intervalo (scatter si hay pocas muestras por bucket). TTFB = respuesta del servidor; FCP / LCP = primera pintura y contenido principal.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 5 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [
+        { "expr": "avg(quantile_over_time(0.75, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_ttfb > 0 | unwrap value_ttfb | __error__=\"\" [$__interval]))", "legendFormat": "TTFB", "refId": "A" },
+        { "expr": "avg(quantile_over_time(0.75, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_fcp > 0 | unwrap value_fcp | __error__=\"\" [$__interval]))", "legendFormat": "FCP", "refId": "B" },
+        { "expr": "avg(quantile_over_time(0.75, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_lcp > 0 | unwrap value_lcp | __error__=\"\" [$__interval]))", "legendFormat": "LCP", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 10, "lineWidth": 2 }, "min": 0 } }
+    },
+    {
+      "title": "Layout Shift Over Time (CLS)",
+      "description": "Cumulative Layout Shift over time. Spikes indicate moments where the page layout shifted unexpectedly (e.g. images loading without dimensions, ads injecting).",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 5 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [
+        { "expr": "avg(quantile_over_time(0.75, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | unwrap value_cls | __error__=\"\" [$__interval]))", "legendFormat": "CLS", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 4, "custom": { "fillOpacity": 10, "lineWidth": 2 }, "min": 0 } }
+    },
+    {
+      "title": "Input Delay Over Time (FID / INP)",
+      "description": "How long users wait after interacting with the page. FID measures only the first interaction, INP measures all interactions. Lower is better.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [
+        { "expr": "avg(quantile_over_time(0.75, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_fid > 0 | unwrap value_fid | __error__=\"\" [$__interval]))", "legendFormat": "FID", "refId": "A" },
+        { "expr": "avg(quantile_over_time(0.75, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_inp > 0 | unwrap value_inp | __error__=\"\" [$__interval]))", "legendFormat": "INP", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 10, "lineWidth": 2 }, "min": 0 } }
+    },
+    {
+      "title": "🚨 Exceptions",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "collapsed": false
+    },
+    {
+      "title": "Total Exceptions",
+      "description": "Total number of JavaScript exceptions captured by Faro in the selected time range.",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 14 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum(count_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"exception\" | __error__=\"\" [$__range]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Exceptions Over Time",
+      "description": "Rate of JavaScript exceptions. Spikes indicate regressions or broken functionality.",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 20, "x": 4, "y": 14 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum(count_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"exception\" | __error__=\"\" [$__interval]))", "legendFormat": "exceptions", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "fixedColor": "red", "mode": "fixed" }, "custom": { "fillOpacity": 30, "lineWidth": 2, "drawStyle": "bars" }, "min": 0 } }
+    },
+    {
+      "title": "Exception Details",
+      "description": "Errores reportados con pushError. El trace ID solo aparece si había un span de tracing activo; el botón de prueba captura el error en un try/catch sin span, por eso suele verse traceID vacío (datos correctos, no un fallo del pipeline). Para correlacionar, use errores durante navegación/fetch instrumentados. Abrir el detalle de la línea para ver el enlace ‘View Trace’ del datasource Loki si hay ID.",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "{source=\"faro\", app_name=~\"$app\"} | json | kind=\"exception\" | __error__=\"\" | line_format \"{{.type}}: {{.value}} | traceID={{if .traceID}}{{.traceID}}{{else if .traceId}}{{.traceId}}{{else}}n/a{{end}}\"", "refId": "A" }],
+      "options": { "showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending" }
+    },
+    {
+      "title": "📡 HTTP Requests",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "collapsed": false
+    },
+    {
+      "title": "Fetch Requests",
+      "description": "Number of fetch/XHR requests made by the frontend application over time.",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 29 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum(count_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"event\" | event_name=\"faro.tracing.fetch\" | __error__=\"\" [$__interval]))", "legendFormat": "requests", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "fillOpacity": 15, "lineWidth": 2, "drawStyle": "bars" }, "min": 0 } }
+    },
+    {
+      "title": "HTTP Status Codes",
+      "description": "Distribution of HTTP response status codes from fetch/XHR requests. Watch for 4xx/5xx spikes.",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 29 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum by (event_data_http_status_code) (count_over_time({source=\"faro\", app_name=~\"$app\"} | json | kind=\"event\" | event_name=\"faro.tracing.fetch\" | __error__=\"\" [$__interval]))", "legendFormat": "HTTP {{event_data_http_status_code}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "fillOpacity": 20, "lineWidth": 2, "drawStyle": "bars", "stacking": { "mode": "normal" } }, "min": 0 } }
+    },
+    {
+      "title": "Fetch latency (p95)",
+      "description": "Duración del span cliente de fetch (Faro exporter: duration_ns en el JSON del evento). Valor en ms. Si no hay datos, el campo puede estar ausente en tu versión del SDK.",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 36 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(quantile_over_time(0.95, {source=\"faro\", app_name=~\"$app\"} | json | kind=\"event\" | event_name=\"faro.tracing.fetch\" | duration_ns > 0 | unwrap duration_ns | __error__=\"\" [$__interval])) / 1e6", "legendFormat": "p95 ms", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "custom": { "fillOpacity": 15, "lineWidth": 2 }, "min": 0 } }
+    },
+    {
+      "title": "Recent Requests",
+      "description": "Últimos fetch instrumentados: método, URL, estado, duración en ns (duration_ns) y traceID si existe. El texto de la línea no es clicable; use el panel de detalle de logs (icono) para ‘View Trace’ con el datasource Loki configurado.",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 42 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "{source=\"faro\", app_name=~\"$app\"} | json | kind=\"event\" | event_name=\"faro.tracing.fetch\" | __error__=\"\" | line_format \"{{.event_data_http_method}} {{.event_data_http_status_code}} {{.event_data_http_url}}{{if .duration_ns}} | {{.duration_ns}}ns{{end}} | traceID={{if .traceID}}{{.traceID}}{{else if .traceId}}{{.traceId}}{{else}}n/a{{end}}\"", "refId": "A" }],
+      "options": { "showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending" }
+    },
+    {
+      "title": "Recent Traces",
+      "description": "Últimos traces que coinciden con resource.service.name en Tempo (debe alinear con app.name del SDK Faro). Ajuste la variable ‘Tempo service.name’ si usa otro nombre. Lista vía TraceQL; pulse una fila para abrir el trace.",
+      "type": "table",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 50 },
+      "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
+      "targets": [{ "queryType": "traceql", "query": "{resource.service.name = \"$faro_service\"}", "limit": 20, "refId": "A" }],
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } } },
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false } }
+    },
+    {
+      "title": "📋 Session & Events",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 59 },
+      "collapsed": false
+    },
+    {
+      "title": "Events by Kind",
+      "description": "Distribution of event types: measurement (Web Vitals), event (fetch, navigation), exception (JS errors).",
+      "type": "piechart",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 60 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum by (kind) (count_over_time({source=\"faro\", app_name=~\"$app\"} | json | __error__=\"\" [$__range]))", "legendFormat": "{{kind}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" }, "pieType": "donut" }
+    },
+    {
+      "title": "Event Rate Over Time",
+      "description": "Rate of all Faro events by type. Useful to see overall frontend activity and correlate with exceptions.",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 16, "x": 8, "y": 60 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum by (kind) (count_over_time({source=\"faro\", app_name=~\"$app\"} | json | __error__=\"\" [$__interval]))", "legendFormat": "{{kind}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "fillOpacity": 20, "lineWidth": 2, "drawStyle": "bars", "stacking": { "mode": "normal" } }, "min": 0 } }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_loki",
+        "type": "datasource",
+        "query": "loki",
+        "current": {},
+        "hide": 2,
+        "label": "Loki Datasource"
+      },
+      {
+        "name": "ds_tempo",
+        "type": "datasource",
+        "query": "tempo",
+        "current": {},
+        "hide": 2,
+        "label": "Tempo Datasource"
+      },
+      {
+        "name": "faro_service",
+        "type": "constant",
+        "label": "Tempo service.name",
+        "query": "demo-frontend",
+        "current": { "selected": true, "text": "demo-frontend", "value": "demo-frontend" },
+        "options": [{ "selected": true, "text": "demo-frontend", "value": "demo-frontend" }],
+        "hide": 2,
+        "skipUrlSync": false
+      },
+      {
+        "name": "app",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "${ds_loki}" },
+        "query": "label_values({source=\"faro\"}, app_name)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {},
+        "hide": 0,
+        "label": "Application"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "title": "Frontend RUM — Grafana Faro",
+  "uid": "faro-rum-frontend",
+  "version": 2,
+  "tags": ["faro", "rum", "frontend", "web-vitals"]
+}

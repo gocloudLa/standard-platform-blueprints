@@ -104,6 +104,9 @@ EOF
 )"
 
 # --- Loki ------------------------------------------------------------------
+TEMPO_UID=$(curl -sf -H "Authorization: Bearer ${GRAFANA_TOKEN}" \
+  "${GRAFANA_URL}/api/datasources/name/Tempo" | jq -r '.uid')
+
 create_or_update_datasource "Loki" "$(cat <<EOF
 {
   "name": "Loki",
@@ -113,10 +116,12 @@ create_or_update_datasource "Loki" "$(cat <<EOF
   "jsonData": {
     "derivedFields": [
       {
-        "datasourceUid": "${PROMETHEUS_UID}",
-        "matcherRegex": "traceID=(\\\\w+)",
-        "name": "TraceID",
-        "url": "\$\${__value.raw}"
+        "datasourceUid": "${TEMPO_UID}",
+        "matcherType": "regex",
+        "matcherRegex": "(?:(?:\"traceID\"|\"trace_id\")\\\\s*:\\\\s*\"|traceID=)([a-fA-F0-9]+)",
+        "name": "traceID",
+        "url": "\${__value.raw}",
+        "urlDisplayLabel": "View Trace"
       }
     ]
   }

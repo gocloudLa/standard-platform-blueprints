@@ -1,9 +1,32 @@
 {
   "annotations": { "list": [] },
+  "description": "Los datasources Prometheus / Tempo / CloudWatch están ocultos y usan los por defecto de la organización. Logs CloudWatch: mismo nombre que ECS Service en Prometheus → /aws/ecs/<servicio>/app (ej. dmc-lab-obs-demo-java). Con varios servicios seleccionados el panel de logs se repite por servicio. Con ‘All’ algunos entornos Grafana no expanden bien el grupo; si falla, multi-selecciona los servicios en lugar de All. Un solo bloque de filtros: ECS Service, Container (valor por defecto app) y ECS Task (por defecto All; etiquetas Prometheus cuando hay varias tasks). Métricas ECS filtran por los tres. Logs: /aws/ecs/<ECS Service>/app — con varios servicios seleccionados el nombre del grupo puede ser inválido; elige un servicio o All según tus grupos. Traces: mismo ECS Service vía resource.service.name (subcadena); el task ID no se aplica aquí porque muchos spans (p. ej. Faro) no llevan aws.ecs.task.id.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "links": [],
+  "links": [
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "Executive health",
+      "type": "link",
+      "url": "/d/obs-exec-health-v1"
+    },
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "JVM / Spring Boot",
+      "type": "link",
+      "url": "/d/jvm-otel-springboot"
+    },
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "Faro RUM",
+      "type": "link",
+      "url": "/d/faro-rum-frontend"
+    }
+  ],
   "panels": [
     {
       "title": "🟢 Service Overview",
@@ -13,17 +36,18 @@
     },
     {
       "title": "Running Tasks",
+      "description": "Cuenta tasks ECS únicos (cluster + servicio + task id), no series por contenedor: cada task suele tener varias series (app, sidecar OTel, etc.) y count() simple las duplicaba.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "count(container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=\"app\"})",
+          "expr": "count(max by (aws_ecs_cluster_name, aws_ecs_service_name, aws_ecs_task_id) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}))",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "green", "value": null}] } }
+        "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "green", "value": null }] } }
       },
       "options": { "colorMode": "background", "textMode": "value" }
     },
@@ -34,12 +58,12 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "count(count by (aws_ecs_service_name) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\"}))",
+          "expr": "count(count by (aws_ecs_service_name) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", aws_ecs_task_id=~\"$ecs_task_id\"}))",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "blue", "value": null}] } }
+        "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "blue", "value": null }] } }
       },
       "options": { "colorMode": "background", "textMode": "value" }
     },
@@ -50,12 +74,12 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "count(count by (aws_ecs_cluster_name) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\"}))",
+          "expr": "count(count by (aws_ecs_cluster_name) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", aws_ecs_task_id=~\"$ecs_task_id\"}))",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "purple", "value": null}] } }
+        "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "purple", "value": null }] } }
       },
       "options": { "colorMode": "background", "textMode": "value" }
     },
@@ -66,13 +90,13 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "count(container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=\"app\"}) by (aws_ecs_launchtype)",
+          "expr": "count by (aws_ecs_launchtype) (max by (aws_ecs_cluster_name, aws_ecs_service_name, aws_ecs_task_id, aws_ecs_launchtype) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}))",
           "legendFormat": "{{aws_ecs_launchtype}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "orange", "value": null}] } }
+        "defaults": { "unit": "short", "thresholds": { "steps": [{ "color": "orange", "value": null }] } }
       },
       "options": { "colorMode": "background", "textMode": "value_and_name" }
     },
@@ -89,8 +113,8 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
-          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}}",
+          "expr": "container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} / task={{aws_ecs_task_id}}",
           "refId": "A"
         }
       ],
@@ -105,8 +129,8 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "container_memory_utilized_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
-          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}}",
+          "expr": "container_memory_utilized_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} / task={{aws_ecs_task_id}}",
           "refId": "A"
         }
       ],
@@ -121,8 +145,8 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "container_cpu_usage_vcpu_vCPU{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
-          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}}",
+          "expr": "container_cpu_usage_vcpu_vCPU{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} / task={{aws_ecs_task_id}}",
           "refId": "A"
         }
       ],
@@ -137,12 +161,12 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "container_memory_reserved_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "expr": "container_memory_reserved_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}",
           "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — reserved",
           "refId": "A"
         },
         {
-          "expr": "container_memory_utilized_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "expr": "container_memory_utilized_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}",
           "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — utilized",
           "refId": "B"
         }
@@ -158,12 +182,12 @@
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
-          "expr": "rate(container_network_io_usage_rx_bytes_Bytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}[5m])",
+          "expr": "rate(container_network_io_usage_rx_bytes_Bytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}[5m])",
           "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — RX",
           "refId": "A"
         },
         {
-          "expr": "rate(container_network_io_usage_tx_bytes_Bytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}[5m])",
+          "expr": "rate(container_network_io_usage_tx_bytes_Bytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\", aws_ecs_task_id=~\"$ecs_task_id\"}[5m])",
           "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — TX",
           "refId": "B"
         }
@@ -180,17 +204,20 @@
     },
     {
       "title": "Recent Traces",
+      "description": "Filtra por la misma variable ECS Service: resource.service.name coincide por subcadena (OTEL). El selector ECS Task solo afecta métricas Prometheus, no Tempo, para no ocultar trazas sin atributo ECS en el recurso.",
       "type": "table",
       "gridPos": { "h": 9, "w": 24, "x": 0, "y": 28 },
       "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
       "targets": [
         {
           "queryType": "traceql",
-          "query": "{resource.service.name =~ \".*$service_short.*\"}",
+          "query": "{resource.service.name =~ \".*$service.*\"}",
           "limit": 20,
           "refId": "A"
         }
-      ]
+      ],
+      "fieldConfig": { "defaults": { "custom": { "align": "auto", "inspect": false } } },
+      "options": { "showHeader": true, "cellHeight": "sm", "footer": { "show": false } }
     },
     {
       "title": "📝 Logs — CloudWatch",
@@ -199,9 +226,13 @@
       "collapsed": false
     },
     {
-      "title": "Application Logs",
+      "title": "Logs — $service",
+      "description": "Grupo /aws/ecs/<ECS Service>/app (us-east-2). El texto del servicio debe coincidir con el segmento del log group en AWS (mismo nombre que aws_ecs_service_name en Prometheus). El panel se repite si eliges varios servicios a la vez. Si con ‘All’ no ves datos, multi-selecciona todos los servicios en el filtro en lugar de All.",
       "type": "logs",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 38 },
+      "repeat": "service",
+      "repeatDirection": "v",
+      "maxPerRow": 24,
       "datasource": { "type": "cloudwatch", "uid": "${ds_cloudwatch}" },
       "targets": [
         {
@@ -209,7 +240,7 @@
           "logGroups": [
             {
               "arn": "",
-              "name": "/aws/ecs/$service_short/app",
+              "name": "/aws/ecs/$service/app",
               "accountId": ""
             }
           ],
@@ -218,166 +249,6 @@
           "region": "us-east-2"
         }
       ]
-    },
-    {
-      "title": "⚡ JVM Metrics (Java only)",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 },
-      "collapsed": false
-    },
-    {
-      "title": "JVM Memory Used",
-      "type": "timeseries",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 49 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "jvm_memory_used_bytes",
-          "legendFormat": "{{jvm_memory_pool_name}} ({{jvm_memory_type}})",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "bytes", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
-      }
-    },
-    {
-      "title": "JVM Memory Limit vs Committed vs Used",
-      "type": "timeseries",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 49 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "sum(jvm_memory_limit_bytes)",
-          "legendFormat": "limit",
-          "refId": "A"
-        },
-        {
-          "expr": "sum(jvm_memory_committed_bytes)",
-          "legendFormat": "committed",
-          "refId": "B"
-        },
-        {
-          "expr": "sum(jvm_memory_used_bytes)",
-          "legendFormat": "used",
-          "refId": "C"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
-      }
-    },
-    {
-      "title": "JVM GC Duration (rate)",
-      "type": "timeseries",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 56 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "rate(jvm_gc_duration_seconds_sum[5m])",
-          "legendFormat": "{{gc}} — duration/s",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "s", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
-      }
-    },
-    {
-      "title": "JVM GC Count (rate)",
-      "type": "timeseries",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 56 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "rate(jvm_gc_duration_seconds_count[5m])",
-          "legendFormat": "{{gc}} — collections/s",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "ops", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
-      }
-    },
-    {
-      "title": "JVM Threads",
-      "type": "timeseries",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 63 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "jvm_thread_count",
-          "legendFormat": "{{daemon}} threads",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "short", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
-      }
-    },
-    {
-      "title": "JVM CPU Utilization",
-      "type": "timeseries",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 63 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "jvm_cpu_recent_utilization_ratio",
-          "legendFormat": "CPU utilization",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "percentunit", "custom": { "fillOpacity": 15, "lineWidth": 2 }, "min": 0, "max": 1 }
-      }
-    },
-    {
-      "title": "JVM Classes Loaded",
-      "type": "stat",
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 70 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "jvm_class_count",
-          "legendFormat": "loaded",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "green", "value": null}] } }
-      }
-    },
-    {
-      "title": "JVM CPU Count",
-      "type": "stat",
-      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 70 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "jvm_cpu_count",
-          "legendFormat": "CPUs",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "blue", "value": null}] } }
-      }
-    },
-    {
-      "title": "Memory After Last GC",
-      "type": "stat",
-      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 70 },
-      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
-      "targets": [
-        {
-          "expr": "sum(jvm_memory_used_after_last_gc_bytes)",
-          "legendFormat": "after GC",
-          "refId": "A"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "bytes", "thresholds": { "steps": [{"color": "yellow", "value": null}] } }
-      }
     }
   ],
   "schemaVersion": 39,
@@ -386,7 +257,7 @@
     "list": [
       {
         "current": {},
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "Prometheus",
         "multi": false,
@@ -398,7 +269,7 @@
       },
       {
         "current": {},
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "Tempo",
         "multi": false,
@@ -410,7 +281,7 @@
       },
       {
         "current": {},
-        "hide": 0,
+        "hide": 2,
         "includeAll": false,
         "label": "CloudWatch",
         "multi": false,
@@ -436,7 +307,7 @@
         "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }
       },
       {
-        "current": { "text": "All", "value": "$__all" },
+        "current": { "selected": true, "text": "app", "value": "app" },
         "hide": 0,
         "includeAll": true,
         "allValue": ".*",
@@ -451,14 +322,19 @@
         "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }
       },
       {
-        "current": { "text": "dmc-lab-obs-demo-nodejs", "value": "dmc-lab-obs-demo-nodejs" },
+        "current": { "selected": true, "text": "All", "value": "$__all" },
         "hide": 0,
-        "includeAll": false,
-        "label": "App (traces/logs)",
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "ECS Task",
         "multi": false,
-        "name": "service_short",
-        "type": "custom",
-        "query": "dmc-lab-obs-demo-java,dmc-lab-obs-demo-nodejs,dmc-lab-obs-demo-php,dmc-lab-obs-grafana,dmc-lab-obs-tempo,dmc-lab-obs-mimir"
+        "name": "ecs_task_id",
+        "options": [{ "selected": true, "text": "All", "value": "$__all" }],
+        "query": "label_values(container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}, aws_ecs_task_id)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }
       }
     ]
   },

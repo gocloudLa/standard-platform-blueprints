@@ -25,6 +25,8 @@ Each ECS task includes an ADOT Collector sidecar that receives telemetry via loc
 | **Grafana** | Dashboards & alerting | `grafana/grafana:13.0.1` | 3000 |
 | **Mimir** | Metrics storage (Prometheus-compatible, S3) | Alpine + [Mimir binary](https://github.com/grafana/mimir) | 9009 |
 | **Tempo** | Traces storage (OTLP, S3) | Alpine + [Tempo binary](https://github.com/grafana/tempo) | 3200, 4317, 4318 |
+| **Loki** | Logs storage (OTLP, S3) | Alpine + [Loki binary](https://github.com/grafana/loki) | 3100 |
+| **Alloy** | Faro RUM receiver (frontend telemetry) | Alpine + [Alloy binary](https://github.com/grafana/alloy) | 12347 |
 | **ADOT Collector** | Sidecar per task | `public.ecr.aws/aws-observability/aws-otel-collector:v0.43.3` | 4317, 4318 |
 
 ---
@@ -38,6 +40,7 @@ Sample apps included to validate the full telemetry pipeline. Each one demonstra
 | `demo-java` | Java 21 (Zipkin) | OTel Java Agent (`-javaagent`) | `https://demo-java.lab.democorp.cloud` |
 | `demo-nodejs` | Node.js 22 | `@opentelemetry/auto-instrumentations-node` | `https://demo-nodejs.lab.democorp.cloud` |
 | `demo-php` | PHP 8.3 | OTel PHP extension (C) + Composer SDK | `https://demo-php.lab.democorp.cloud` |
+| `demo-frontend` | HTML/JS (browser) | Grafana Faro Web SDK (CDN) | `https://demo-frontend.lab.democorp.cloud` |
 
 ---
 
@@ -47,33 +50,52 @@ After the stack is deployed via `tofu apply`, follow these steps to configure Gr
 
 ### 1. Access Grafana
 
-Open `https://grafana.lab.democorp.cloud`
+Open your Grafana URL (for the lab reference deployment: `https://grafana.lab.democorp.cloud`).
 
 Default credentials: `admin` / `admin`
 
 ### 2. Generate a Service Account Token
 
-This token is used by the sync scripts to manage datasources and dashboards via API.
+This token is used by the scripts under `resources/` to manage datasources and dashboards via the Grafana HTTP API.
 
 1. Go to **Administration** → **Service Accounts**
 2. Click **Add service account**
 3. Name: `automation`, Role: **Editor**
-4. Click the created account → **Add token**
-5. Copy the `glsa_...` token
+4. Open the created account → **Add token**
+5. Copy the `glsa_...` token (you will paste it into `.env` in the next step)
 
-### 3. Create Datasources
+### 3. Configure credentials (`resources/.env`)
 
-Update the `GRAFANA_TOKEN` value in `resources/create-datasources.sh` with your token, then run:
+Both `create-datasources.sh` and `sync-dashboards.sh` load environment variables from `resources/.env` if that file exists.
+
+1. Copy the example file and edit the copy (do not commit `.env`; it is gitignored):
+
+   ```bash
+   cp resources/.env.example resources/.env
+   ```
+
+2. Set **`GRAFANA_URL`** to the base URL of your Grafana instance (no trailing slash), e.g. `https://grafana.lab.democorp.cloud`.
+
+3. Set **`GRAFANA_TOKEN`** to the service account token from step 2.
+
+The template in `resources/.env.example` documents both variables:
+
+```
+GRAFANA_URL="https://grafana.lab.example.com"
+GRAFANA_TOKEN="glsa_xxxxxxxxxxxx"
+```
+
+### 4. Create Datasources
+
+From the repository root:
 
 ```bash
 bash resources/create-datasources.sh
 ```
 
-This creates/updates three datasources: Prometheus (Mimir), Tempo, and CloudWatch.
+This creates or updates three datasources: Prometheus (Mimir), Tempo, and CloudWatch.
 
-### 4. Sync Dashboards
-
-Update the `GRAFANA_TOKEN` value in `resources/sync-dashboards.sh` (same token), then run:
+### 5. Sync Dashboards
 
 ```bash
 bash resources/sync-dashboards.sh
@@ -81,18 +103,22 @@ bash resources/sync-dashboards.sh
 
 This pushes all JSON dashboards from `resources/dashboards/` to Grafana. Run it again after any dashboard edit to sync changes.
 
-### 5. Generate Test Traffic
+### 6. Generate Test Traffic
 
 ```bash
 curl https://demo-java.lab.democorp.cloud/actuator/health
 curl https://demo-nodejs.lab.democorp.cloud/work
 curl https://demo-php.lab.democorp.cloud/
+# Open in browser for Faro RUM:
+# https://demo-frontend.lab.democorp.cloud
 ```
 
-### 6. Verify in Grafana
+### 7. Verify in Grafana
 
 - **Metrics**: Explore → Prometheus → `{service_name=~"dmc-lab-obs-.*"}`
 - **Traces**: Explore → Tempo → Search by service name
+- **Logs**: Explore → Loki → `{service_name=~"dmc-lab-obs-.*"}`
+- **RUM**: Explore → Loki → `{app_name="demo-frontend"}`
 
 ---
 
@@ -208,6 +234,47 @@ OTEL_LOGS_EXPORTER=none
 
 ---
 
+### Frontend (Browser) — Grafana Faro Web SDK
+
+**Zero-code** (CDN script tag). Captures Web Vitals, JS errors, console logs, and client-side traces from the browser.
+
+**How it works in the demo:**
+
+1. Load the Faro SDK and tracing bundle from unpkg CDN via `<script>` tags
+2. Initialize with the Alloy endpoint URL
+3. Faro auto-captures page loads, Web Vitals, errors, and console output
+
+**To replicate in your app:**
+
+Add these script tags to your HTML `<head>` or before `</body>`:
+
+```html
+<script>
+  window.initFaro = function() {
+    window.GrafanaFaroWebSdk.initializeFaro({
+      url: 'https://alloy.your-domain.com/collect',
+      app: { name: 'my-app', version: '1.0.0', environment: 'production' },
+      instrumentations: [
+        ...window.GrafanaFaroWebSdk.getWebInstrumentations({ captureConsole: true }),
+      ],
+    });
+  };
+  window.addFaroTracing = function() {
+    window.GrafanaFaroWebSdk.faro.instrumentations.add(
+      new window.GrafanaFaroWebTracing.TracingInstrumentation()
+    );
+  };
+</script>
+<script src="https://unpkg.com/@grafana/faro-web-sdk@^1.0.0/dist/bundle/faro-web-sdk.iife.js" onload="window.initFaro()"></script>
+<script src="https://unpkg.com/@grafana/faro-web-tracing@^1.0.0/dist/bundle/faro-web-tracing.iife.js" onload="window.addFaroTracing()"></script>
+```
+
+**What you get automatically:** Web Vitals (LCP, FID, CLS, TTFB, INP), JavaScript errors with stack traces, console logs, page navigation traces, fetch/XHR request traces, session metadata (browser, OS, screen size).
+
+**Infrastructure required:** Grafana Alloy with `faro.receiver` exposed publicly via ALB (browsers send data directly). Alloy forwards logs → Loki, traces → Tempo.
+
+---
+
 ## ADOT Sidecar Configuration
 
 Every instrumented task needs this sidecar container. The config goes in the `AOT_CONFIG_CONTENT` environment variable:
@@ -251,8 +318,7 @@ Replace `<zone_internal>` with your Cloud Map private namespace (e.g. `lab.democ
 
 | Dashboard | File | Description |
 |-----------|------|-------------|
-| ECS Observability | `resources/dashboards/grafana-dashboard-ecs-observability.json` | Container-level CPU, memory, network per ECS service |
+| Executive health | `resources/dashboards/grafana-dashboard-executive-health.json` | Semáforo / bar gauges por servicio y por app RUM (sin listas manuales; umbrales CPU/memoria/LCP) |
 | JVM / Spring Boot | `resources/dashboards/grafana-dashboard-jvm-springboot.json` | Heap, GC, threads, CPU — filterable by service |
-| Observability Integral | `resources/dashboards/grafana-dashboard-observability-integral.json` | Full stack overview: all services, resources, traces |
-
-Edit the JSON files locally, then run `bash resources/sync-dashboards.sh` to push changes.
+| Observability Integral | `resources/dashboards/grafana-dashboard-observability-integral.json` | ECS container metrics, traces (Tempo), app logs (CloudWatch), filters by service/container/task |
+| Frontend RUM — Faro | `resources/dashboards/grafana-dashboard-faro-rum.json` | Web Vitals, fetch/errors, session-style events from Loki |

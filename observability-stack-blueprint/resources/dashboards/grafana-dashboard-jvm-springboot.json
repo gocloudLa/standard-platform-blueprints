@@ -3,7 +3,22 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "links": [],
+  "links": [
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "Executive health",
+      "type": "link",
+      "url": "/d/obs-exec-health-v1"
+    },
+    {
+      "icon": "dashboard",
+      "keepTime": true,
+      "title": "Observability — Integral",
+      "type": "link",
+      "url": "/d/obs-integral-lab-v4"
+    }
+  ],
   "panels": [
     {
       "title": "☕ JVM Overview",
@@ -228,9 +243,40 @@
       "collapsed": false
     },
     {
+      "title": "JVM Memory — Limit vs Committed vs Used (total)",
+      "description": "Suma de todos los pools de memoria JVM (heap + non-heap): límite, confirmado y en uso. Equivalente al panel del dashboard integral, filtrado por servicio.",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_limit_bytes{service_name=~\"$service\"})",
+          "legendFormat": "limit",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes{service_name=~\"$service\"})",
+          "legendFormat": "committed",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes{service_name=~\"$service\"})",
+          "legendFormat": "used",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "fillOpacity": 10, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
       "title": "Heap Memory",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
@@ -264,7 +310,7 @@
     {
       "title": "Non-Heap Memory",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
@@ -292,7 +338,7 @@
     {
       "title": "Memory Used After Last GC",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 38 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
@@ -312,13 +358,13 @@
     {
       "title": "♻️ Garbage Collection",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 46 },
       "collapsed": false
     },
     {
       "title": "GC Pause Duration (p95)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 47 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
@@ -343,7 +389,7 @@
     {
       "title": "GC Collections Rate",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 47 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
@@ -363,7 +409,7 @@
     {
       "title": "GC Total Time Spent (rate)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 48 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 55 },
       "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
       "targets": [
         {
@@ -383,13 +429,13 @@
     {
       "title": "📡 OTel Agent Internals",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 56 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 63 },
       "collapsed": true,
       "panels": [
         {
           "title": "OTLP Exporter — Exported vs Seen",
           "type": "timeseries",
-          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 57 },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
           "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
           "targets": [
             {
@@ -410,7 +456,7 @@
         {
           "title": "Spans Processed Rate",
           "type": "timeseries",
-          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 57 },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
           "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
           "targets": [
             {

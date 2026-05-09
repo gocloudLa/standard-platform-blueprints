@@ -1,0 +1,131 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "🟢 Platform Status",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "Services",
+      "description": "ECS services with running tasks.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [{ "expr": "count(count by (aws_ecs_service_name) (container_cpu_utilized_None{container_name=\"app\"}))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "green", "value": null}] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Tasks",
+      "description": "Total running ECS tasks.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [{ "expr": "count(max by (aws_ecs_cluster_name, aws_ecs_service_name, aws_ecs_task_id) (container_cpu_utilized_None{container_name=\"app\"}))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "green", "value": null}] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "RUM Apps",
+      "description": "Frontend apps reporting via Faro.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "count(count by (app_name) (count_over_time({source=\"faro\"} [5m])))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "blue", "value": null}] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "JS Errors (5m)",
+      "description": "Frontend exceptions in last 5 minutes.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum(count_over_time({source=\"faro\"} | json | kind=\"exception\" | __error__=\"\" [5m]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "0", "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 20}] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "LCP",
+      "description": "Largest Contentful Paint avg. <2.5s good.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_lcp > 0 | unwrap value_lcp | __error__=\"\" [5m]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 2500}, {"color": "red", "value": 4000}] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "INP",
+      "description": "Interaction to Next Paint avg. <200ms good.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "avg(avg_over_time({source=\"faro\"} | json | kind=\"measurement\" | type=\"web-vitals\" | value_inp > 0 | unwrap value_inp | __error__=\"\" [5m]))", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "ms", "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 200}, {"color": "red", "value": 500}] } } },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "CPU Utilized (vCPU)",
+      "description": "CPU utilization per ECS service in vCPU units.",
+      "type": "bargauge",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [{ "expr": "avg by (aws_ecs_service_name) (container_cpu_usage_vcpu_vCPU{container_name=\"app\"})", "legendFormat": "{{aws_ecs_service_name}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 3, "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 0.8}] } } },
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "minVizWidth": 8, "minVizHeight": 16 }
+    },
+    {
+      "title": "Memory Utilized (MB)",
+      "description": "Memory used per ECS service in megabytes.",
+      "type": "bargauge",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [{ "expr": "avg by (aws_ecs_service_name) (container_memory_utilized_Megabytes{container_name=\"app\"})", "legendFormat": "{{aws_ecs_service_name}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "decmbytes", "min": 0, "max": 1024, "thresholds": { "mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 512}, {"color": "red", "value": 900}] } } },
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "minVizWidth": 8, "minVizHeight": 16 }
+    },
+    {
+      "title": "Frontend Exceptions",
+      "description": "JavaScript exceptions per app over time.",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 12 },
+      "datasource": { "type": "loki", "uid": "${ds_loki}" },
+      "targets": [{ "expr": "sum by (app_name) (count_over_time({source=\"faro\"} | json | kind=\"exception\" | __error__=\"\" [$__interval]))", "legendFormat": "{{app_name}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" }, "custom": { "fillOpacity": 30, "lineWidth": 2, "drawStyle": "bars" }, "min": 0 } }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 2,
+        "name": "ds_prometheus",
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 2,
+        "name": "ds_loki",
+        "query": "loki",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "title": "Executive Health Overview",
+  "uid": "executive-health",
+  "version": 1,
+  "tags": ["executive", "health", "overview"]
+}

@@ -599,3 +599,116 @@ Expected Final Result
 - 6 months history
 - Logs/traces/metrics correlation
 - No Java code changes required
+
+================================================================================
+
+Grafana Faro — Real User Monitoring (RUM)
+
+Documentation:
+https://grafana.com/oss/faro/
+https://grafana.com/docs/alloy/latest/reference/components/faro/faro.receiver/
+
+Purpose:
+- Collect frontend telemetry from browsers (Real User Monitoring)
+- Web Vitals (LCP, FID, CLS, TTFB, INP)
+- JavaScript errors and exceptions (with stack traces)
+- Browser console logs
+- Client-side traces (page navigation, fetch/XHR, user interactions)
+- Session metadata (browser, OS, screen size, URL)
+
+Architecture:
+
+```
+Browser (Faro Web SDK)
+  → HTTPS (public endpoint with CORS)
+    → Grafana Alloy (faro.receiver)
+      → Loki (logs: errors, web vitals, console)
+      → Tempo (traces: navigation, fetch, clicks)
+```
+
+Components required:
+- Grafana Alloy: receives Faro telemetry via HTTP, forwards logs to Loki and traces to Tempo
+- Faro Web SDK: JavaScript library embedded in the frontend (loaded via CDN, no build step)
+
+Deploy strategy:
+- Alloy runs as an ECS service with a public ALB endpoint (browsers need to reach it)
+- Uses the official `grafana/alloy` Docker image (no Alpine+binary needed)
+- Config passed via environment variable or command args
+- CORS enabled for the frontend domain(s)
+
+Alloy config (River syntax):
+
+```
+faro.receiver "default" {
+  server {
+    listen_address = "0.0.0.0"
+    listen_port    = 12347
+    cors_allowed_origins = ["*"]
+  }
+
+  output {
+    logs   = [otelcol.receiver.loki.default.receiver]
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo.<zone_internal>:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+otelcol.receiver.loki "default" {
+  output {
+    logs = [otelcol.exporter.otlphttp.loki.input]
+  }
+}
+
+otelcol.exporter.otlphttp "loki" {
+  client {
+    endpoint = "http://loki.<zone_internal>:3100/otlp"
+    tls {
+      insecure = true
+    }
+  }
+}
+```
+
+Frontend SDK integration (CDN, no build step):
+
+```html
+<script
+  src="https://unpkg.com/@grafana/faro-web-sdk@^1.0.0/dist/bundle/faro-web-sdk.iife.js"
+  onload="window.initFaro()"
+></script>
+<script
+  src="https://unpkg.com/@grafana/faro-web-tracing@^1.0.0/dist/bundle/faro-web-tracing.iife.js"
+  onload="window.addFaroTracing()"
+></script>
+<script>
+  window.initFaro = function() {
+    window.GrafanaFaroWebSdk.initializeFaro({
+      url: 'https://alloy.<domain>/collect',
+      app: { name: 'my-frontend-app', version: '1.0.0' },
+    });
+  };
+  window.addFaroTracing = function() {
+    window.GrafanaFaroWebSdk.faro.instrumentations.add(
+      new window.GrafanaFaroWebTracing.TracingInstrumentation()
+    );
+  };
+</script>
+```
+
+Notes:
+- Alloy must be publicly accessible (browsers send data directly)
+- CORS must allow the frontend origin(s)
+- No API key configured in this lab (add api_key in production)
+- Faro SDK is loaded from CDN — no npm/build step required for the demo
+- Traces from Faro land in Tempo alongside backend traces (full frontend-to-backend correlation)
+- Logs from Faro land in Loki with labels: app_name, browser, OS, URL
+
+================================================================================
