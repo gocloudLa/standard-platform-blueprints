@@ -1,0 +1,468 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "🟢 Service Overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "Running Tasks",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "count(container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=\"app\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "green", "value": null}] } }
+      },
+      "options": { "colorMode": "background", "textMode": "value" }
+    },
+    {
+      "title": "Service",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "count(count by (aws_ecs_service_name) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\"}))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "blue", "value": null}] } }
+      },
+      "options": { "colorMode": "background", "textMode": "value" }
+    },
+    {
+      "title": "Cluster",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "count(count by (aws_ecs_cluster_name) (container_cpu_utilized_None{aws_ecs_service_name=~\"$service\"}))",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "purple", "value": null}] } }
+      },
+      "options": { "colorMode": "background", "textMode": "value" }
+    },
+    {
+      "title": "Launch Type",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "count(container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=\"app\"}) by (aws_ecs_launchtype)",
+          "legendFormat": "{{aws_ecs_launchtype}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "orange", "value": null}] } }
+      },
+      "options": { "colorMode": "background", "textMode": "value_and_name" }
+    },
+    {
+      "title": "📊 Metrics — Container Resources",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "title": "CPU Utilized (%)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "container_cpu_utilized_None{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "Memory Utilized (MB)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "container_memory_utilized_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "decmbytes", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "CPU Usage (vCPU)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "container_cpu_usage_vcpu_vCPU{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "Memory Reserved vs Utilized",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "container_memory_reserved_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — reserved",
+          "refId": "A"
+        },
+        {
+          "expr": "container_memory_utilized_Megabytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — utilized",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "decmbytes", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "Network RX/TX (Bytes/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "rate(container_network_io_usage_rx_bytes_Bytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}[5m])",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — RX",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(container_network_io_usage_tx_bytes_Bytes{aws_ecs_service_name=~\"$service\", container_name=~\"$container\"}[5m])",
+          "legendFormat": "{{aws_ecs_service_name}} / {{container_name}} — TX",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "Bps", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "🔍 Traces",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "collapsed": false
+    },
+    {
+      "title": "Recent Traces",
+      "type": "table",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 28 },
+      "datasource": { "type": "tempo", "uid": "${ds_tempo}" },
+      "targets": [
+        {
+          "queryType": "traceql",
+          "query": "{resource.service.name =~ \".*$service_short.*\"}",
+          "limit": 20,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "📝 Logs — CloudWatch",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
+      "collapsed": false
+    },
+    {
+      "title": "Application Logs",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 38 },
+      "datasource": { "type": "cloudwatch", "uid": "${ds_cloudwatch}" },
+      "targets": [
+        {
+          "queryMode": "Logs",
+          "logGroups": [
+            {
+              "arn": "",
+              "name": "/aws/ecs/$service_short/app",
+              "accountId": ""
+            }
+          ],
+          "expression": "fields @timestamp, @message | sort @timestamp desc | limit 100",
+          "refId": "A",
+          "region": "us-east-2"
+        }
+      ]
+    },
+    {
+      "title": "⚡ JVM Metrics (Java only)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 48 },
+      "collapsed": false
+    },
+    {
+      "title": "JVM Memory Used",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 49 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes",
+          "legendFormat": "{{jvm_memory_pool_name}} ({{jvm_memory_type}})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "JVM Memory Limit vs Committed vs Used",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 49 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_limit_bytes)",
+          "legendFormat": "limit",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes)",
+          "legendFormat": "committed",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(jvm_memory_used_bytes)",
+          "legendFormat": "used",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "JVM GC Duration (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 56 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_duration_seconds_sum[5m])",
+          "legendFormat": "{{gc}} — duration/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "JVM GC Count (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 56 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "rate(jvm_gc_duration_seconds_count[5m])",
+          "legendFormat": "{{gc}} — collections/s",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "fillOpacity": 15, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "JVM Threads",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 63 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_thread_count",
+          "legendFormat": "{{daemon}} threads",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "fillOpacity": 10, "lineWidth": 2 } }
+      }
+    },
+    {
+      "title": "JVM CPU Utilization",
+      "type": "timeseries",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 63 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_cpu_recent_utilization_ratio",
+          "legendFormat": "CPU utilization",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "custom": { "fillOpacity": 15, "lineWidth": 2 }, "min": 0, "max": 1 }
+      }
+    },
+    {
+      "title": "JVM Classes Loaded",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 70 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_class_count",
+          "legendFormat": "loaded",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "green", "value": null}] } }
+      }
+    },
+    {
+      "title": "JVM CPU Count",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 70 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_cpu_count",
+          "legendFormat": "CPUs",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "thresholds": { "steps": [{"color": "blue", "value": null}] } }
+      }
+    },
+    {
+      "title": "Memory After Last GC",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 70 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_after_last_gc_bytes)",
+          "legendFormat": "after GC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "thresholds": { "steps": [{"color": "yellow", "value": null}] } }
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["observability", "integral", "ecs", "otel"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Prometheus",
+        "multi": false,
+        "name": "ds_prometheus",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Tempo",
+        "multi": false,
+        "name": "ds_tempo",
+        "options": [],
+        "query": "tempo",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "CloudWatch",
+        "multi": false,
+        "name": "ds_cloudwatch",
+        "options": [],
+        "query": "cloudwatch",
+        "refresh": 1,
+        "type": "datasource"
+      },
+      {
+        "current": { "text": "All", "value": "$__all" },
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "ECS Service",
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": "label_values(container_cpu_utilized_None, aws_ecs_service_name)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }
+      },
+      {
+        "current": { "text": "All", "value": "$__all" },
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Container",
+        "multi": true,
+        "name": "container",
+        "options": [],
+        "query": "label_values(container_cpu_utilized_None{aws_ecs_service_name=~\"$service\"}, container_name)",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" }
+      },
+      {
+        "current": { "text": "dmc-lab-obs-demo-nodejs", "value": "dmc-lab-obs-demo-nodejs" },
+        "hide": 0,
+        "includeAll": false,
+        "label": "App (traces/logs)",
+        "multi": false,
+        "name": "service_short",
+        "type": "custom",
+        "query": "dmc-lab-obs-demo-java,dmc-lab-obs-demo-nodejs,dmc-lab-obs-demo-php,dmc-lab-obs-grafana,dmc-lab-obs-tempo,dmc-lab-obs-mimir"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Observability Stack — Integral Dashboard",
+  "uid": "obs-integral-lab-v4"
+}

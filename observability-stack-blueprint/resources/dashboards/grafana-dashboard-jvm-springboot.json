@@ -1,0 +1,461 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "☕ JVM Overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "Uptime",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "process_runtime_jvm_system_cpu_utilization_ratio{service_name=~\"$service\"} * 0 + (time() - process_start_time_seconds{service_name=~\"$service\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "steps": [{"color": "green", "value": null}] }
+        }
+      },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "CPU Count",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_cpu_count{service_name=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{"color": "blue", "value": null}] }
+        }
+      },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "CPU Usage",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_cpu_recent_utilization_ratio{service_name=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.6}, {"color": "red", "value": 0.85}] }
+        }
+      },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Threads",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_thread_count{service_name=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{"color": "purple", "value": null}] }
+        }
+      },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Classes Loaded",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_class_count{service_name=~\"$service\"}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "steps": [{"color": "orange", "value": null}] }
+        }
+      },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "Heap Used",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum(jvm_memory_used_bytes{service_name=~\"$service\", jvm_memory_type=\"heap\"})",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": { "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 536870912}, {"color": "red", "value": 1073741824}] }
+        }
+      },
+      "options": { "colorMode": "background", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "title": "📈 CPU & Threads",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "title": "CPU Utilization",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_cpu_recent_utilization_ratio{service_name=~\"$service\"}",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "fillOpacity": 15, "lineWidth": 2 },
+          "min": 0, "max": 1
+        }
+      }
+    },
+    {
+      "title": "CPU Time (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "rate(jvm_cpu_time_seconds_total{service_name=~\"$service\"}[$__rate_interval])",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "fillOpacity": 10, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "Thread Count",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_thread_count{service_name=~\"$service\"}",
+          "legendFormat": "{{service_name}} — {{jvm_thread_daemon}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "fillOpacity": 10, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "Classes Loaded / Unloaded",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "jvm_class_count{service_name=~\"$service\"}",
+          "legendFormat": "loaded",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(jvm_class_loaded_total{service_name=~\"$service\"}[$__rate_interval])",
+          "legendFormat": "loading rate",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(jvm_class_unloaded_total{service_name=~\"$service\"}[$__rate_interval])",
+          "legendFormat": "unloading rate",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "fillOpacity": 5, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "🧠 Memory",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "collapsed": false
+    },
+    {
+      "title": "Heap Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_used_bytes{service_name=~\"$service\", jvm_memory_type=\"heap\"})",
+          "legendFormat": "used — {{jvm_memory_pool_name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes{service_name=~\"$service\", jvm_memory_type=\"heap\"})",
+          "legendFormat": "committed (total)",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(jvm_memory_limit_bytes{service_name=~\"$service\", jvm_memory_type=\"heap\"}) > 0",
+          "legendFormat": "limit (max heap)",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "fillOpacity": 20, "lineWidth": 2, "stacking": { "mode": "normal", "group": "used" } },
+          "min": 0
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "committed (total)" }, "properties": [{ "id": "custom.fillOpacity", "value": 0 }, { "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "custom.stacking", "value": { "mode": "none" } }] },
+          { "matcher": { "id": "byName", "options": "limit (max heap)" }, "properties": [{ "id": "custom.fillOpacity", "value": 0 }, { "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "custom.stacking", "value": { "mode": "none" } }, { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Non-Heap Memory",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_used_bytes{service_name=~\"$service\", jvm_memory_type=\"non_heap\"})",
+          "legendFormat": "used — {{jvm_memory_pool_name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(jvm_memory_committed_bytes{service_name=~\"$service\", jvm_memory_type=\"non_heap\"})",
+          "legendFormat": "committed (total)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "fillOpacity": 20, "lineWidth": 2, "stacking": { "mode": "normal", "group": "used" } },
+          "min": 0
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "committed (total)" }, "properties": [{ "id": "custom.fillOpacity", "value": 0 }, { "id": "custom.lineStyle", "value": { "fill": "dash" } }, { "id": "custom.stacking", "value": { "mode": "none" } }] }
+        ]
+      }
+    },
+    {
+      "title": "Memory Used After Last GC",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 31 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_used_after_last_gc_bytes{service_name=~\"$service\"})",
+          "legendFormat": "{{jvm_memory_pool_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "fillOpacity": 15, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "♻️ Garbage Collection",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
+      "collapsed": false
+    },
+    {
+      "title": "GC Pause Duration (p95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, jvm_gc_name) (rate(jvm_gc_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+          "legendFormat": "p95 — {{jvm_gc_name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le, jvm_gc_name) (rate(jvm_gc_duration_seconds_bucket{service_name=~\"$service\"}[$__rate_interval])))",
+          "legendFormat": "p99 — {{jvm_gc_name}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "fillOpacity": 10, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "GC Collections Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum by (jvm_gc_name, jvm_gc_action) (rate(jvm_gc_duration_seconds_count{service_name=~\"$service\"}[$__rate_interval]))",
+          "legendFormat": "{{jvm_gc_name}} — {{jvm_gc_action}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "fillOpacity": 15, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "GC Total Time Spent (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 48 },
+      "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+      "targets": [
+        {
+          "expr": "sum by (jvm_gc_name) (rate(jvm_gc_duration_seconds_sum{service_name=~\"$service\"}[$__rate_interval]))",
+          "legendFormat": "{{jvm_gc_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "fillOpacity": 15, "lineWidth": 2 },
+          "min": 0
+        }
+      }
+    },
+    {
+      "title": "📡 OTel Agent Internals",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 56 },
+      "collapsed": true,
+      "panels": [
+        {
+          "title": "OTLP Exporter — Exported vs Seen",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 57 },
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "targets": [
+            {
+              "expr": "rate(otlp_exporter_exported_total{service_name=~\"$service\"}[$__rate_interval])",
+              "legendFormat": "exported — {{type}}",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(otlp_exporter_seen_total{service_name=~\"$service\"}[$__rate_interval])",
+              "legendFormat": "seen — {{type}}",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "lineWidth": 2 }, "min": 0 }
+          }
+        },
+        {
+          "title": "Spans Processed Rate",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 57 },
+          "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+          "targets": [
+            {
+              "expr": "rate(processedSpans_total{service_name=~\"$service\"}[$__rate_interval])",
+              "legendFormat": "{{transport}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": { "unit": "ops", "custom": { "fillOpacity": 10, "lineWidth": 2 }, "min": 0 }
+          }
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "label": "Datasource"
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${ds_prometheus}" },
+        "query": "label_values(jvm_memory_used_bytes, service_name)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {},
+        "hide": 0,
+        "label": "Service"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "title": "JVM / Spring Boot — OpenTelemetry",
+  "uid": "jvm-otel-springboot",
+  "version": 1,
+  "tags": ["jvm", "springboot", "opentelemetry", "otel"]
+}
