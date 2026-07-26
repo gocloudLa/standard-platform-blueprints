@@ -6,7 +6,8 @@
 
 module "base" {
 
-  source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade-peering"
+  source  = "gocloudLa/standard-platform/aws//modules/base"
+  version = "1.0.0"
 
   /*----------------------------------------------------------------------*/
   /* General Variables                                                    */

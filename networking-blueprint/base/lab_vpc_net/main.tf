@@ -6,7 +6,8 @@
 
 module "base" {
 
-  source = "git@github.com:gocloudLa/terraform-aws-standard-platform.git//modules/base?ref=feature/vpc-upgrade-peering"
+  source  = "gocloudLa/standard-platform/aws//modules/base"
+  version = "1.0.0"
 
   /*----------------------------------------------------------------------*/
   /* General Variables                                                    */
@@ -269,15 +270,13 @@ module "base" {
   # }
 
   route53_parameters = {
-    zones = {
-      "${local.zone_public}" = {
-        private = false
-      }
+    "${local.zone_public}" = {
+      private = false
+    }
 
-      "${local.zone_private}" = {
-        private = true
-        vpc     = "networking"
-      }
+    "${local.zone_private}" = {
+      private = true
+      vpc     = "networking"
     }
   }
 
