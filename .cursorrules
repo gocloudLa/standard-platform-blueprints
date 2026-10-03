@@ -26,3 +26,44 @@
 1. Create `<name>-blueprint/`, add `gocloud.yaml` and project/workload (via gocloud if applicable).
 2. Add **BLUEPRINT.md** with app specifics.
 3. Update root README: new row in blueprints table and “Coming soon” if needed. Keep disclaimer.
+
+---
+
+## Standard Platform usage (Terraform)
+
+This repo uses **gocloudLa/standard-platform**. All infra is done via module parameters; do not add raw Terraform resources for things the platform already covers.
+
+### No raw resources
+
+- Only configure the standard-platform module in each layer: one `module "base"` or `module "project"` etc. with `metadata = local.metadata` and `*_parameters = { ... }`.
+- Do not add `resource "aws_..."` for capabilities provided by the platform.
+- If a feature is not supported by the modules, do not invent resources. Say you could not find a way with the current modules and suggest checking docs or a feature request.
+
+### Where each thing goes (layer → parameters)
+
+- **Organization** (`organization/`): `organization_parameters`, `identity_center_parameters`, `s3_backend_parameters`. Once per org.
+- **Base** (`base/<stack>/`): VPC, DNS zones, CloudMap, SNS → `vpc_parameters`, `route53_parameters`, `cloudmap_parameters`, `notifications_parameters`.
+- **Foundation** (`foundation/<stack>/`): ACM, IAM, Backup, SES, WAF, etc. → `acm_parameters`, `iam_parameters`, `aws_backup_parameters`, `ses_parameters`, `waf_parameters`, `gitlab_runner_parameters`, `pritunl_parameters`, `route53_parameters`, `service_scheduler_parameters`, `health_events_parameters`, `cost_control_parameters`.
+- **Project** (`project/<project>/<stack>/`): ALB, ECS, ECR, RDS, SQS, S3, etc. → `alb_parameters`, `ecs_parameters`, `ecr_parameters`, `rds_parameters`, `rds_aurora_parameters`, `sqs_parameters`, `dynamodb_parameters`, `bucket_parameters`, `efs_parameters`, `batch_parameters`, `elasticache_parameters`, `documentdb_parameters`, `memorydb_parameters`, `kms_parameters`.
+- **Workload** (`workload/<project>/<stack>/`): apps → `static_site_parameters`, `ecs_service_parameters`, `batch_job_parameters`, `lambda_parameters`, `ec2_instance_parameters`.
+
+**Quick lookup:** ALB → Project (`alb_parameters`). Lambda → Workload (`lambda_parameters`). ACM → Foundation (`acm_parameters`). VPC → Base (`vpc_parameters`).
+
+### Ask before assuming
+
+- When adding or changing something in Project or Workload, if environment or project is unclear (e.g. core vs example, dev vs prd), ask: which environment and which project?
+- When the user’s request is missing important inputs the module needs (subnets, certificate ARN, cluster name, etc.), ask for them instead of guessing.
+
+### Code style (Terraform)
+
+- One module per layer per stack; always pass `metadata = local.metadata`.
+- Use section comments like in the repo: `/*----------------------------------------------------------------------*/` and `/* ALB Variables */`.
+- Keep file roles: `main.tf` for the module, `metadata.tf`/`locals.tf` for metadata and locals, `data_sources.tf` for data, `_secrets.tf` for secrets.
+
+### External modules (MCP)
+
+- Use Terraform MCP `SearchUserProvidedModule` for Registry modules; for gocloudLa follow the chain (e.g. project → wrapper-alb → terraform-aws-modules/alb).
+- Use GitHub or Registry API when MCP doesn’t have the module.
+- Prefer looking up module inputs/outputs over guessing; check before saying a feature is or isn’t supported.
+
+**Doc:** [terraform-aws-standard-platform](https://github.com/gocloudLa/terraform-aws-standard-platform) (README + modules/base, modules/foundation, modules/project, modules/workload, modules/organization).
