@@ -7,10 +7,10 @@
 module "base" {
 
   source  = "gocloudLa/standard-platform/aws//modules/base"
-  version = "1.0.0"
+  version = "1.10.0"
 
   /*----------------------------------------------------------------------*/
-  /* General Variables                                                    */
+  /* General Parameters                                                   */
   /*----------------------------------------------------------------------*/
 
   metadata = local.metadata
@@ -24,7 +24,7 @@ module "base" {
       nat_gateway = {
         "natgw" = {
           subnet = "public-a"
-          kind   = "aws" # OPCION AWS
+          kind   = "aws"
         }
       }
       route_table = {
@@ -115,13 +115,14 @@ module "base" {
         "igw" = {}
       }
       nat_gateway = {
+        # Managed NAT alternative: kind = "aws" and default_route.nat_gateway = "natgw".
         # "natgw" = {
         #   subnet = "public-a"
-        #   kind   = "aws" # OPCION AWS
+        #   kind   = "aws"
         # }
         "natgw" = {
           subnet = "public-a"
-          kind   = "ec2" # OPCION EC2
+          kind   = "ec2"
           nat_parameters = {
             ec2_nat_gateway_attach_eip = true,
             ingress_with_cidr_blocks = [
@@ -205,14 +206,14 @@ module "base" {
   }
 
   peering_parameters = {
-    # # Same Account
+    # Optional same-account peering between production and development.
     # "prd-with-dev" = {
     #   # create_peer = true
-    #   auto_accept = true
-    #   vpc         = "production"
+    #   auto_accept  = true
+    #   vpc          = "production"
     #   # vpc_id = "vpc-01234567890123456"
     #   vpc_accepter = "development"
-    #   # vpc_acceper_id = "vpc-01234567890123456"
+    #   # vpc_accepter_id = "vpc-01234567890123456"
     #   vpc_routes = {
     #     "production" = {
     #       "private" = { destination_cidr_block = [local.vpc_cidr_development] }
@@ -225,22 +226,16 @@ module "base" {
     #   }
     # }
 
-    # # Cross Account ( Must apply after vpc creation)
+    # Optional cross-account accepter. Uncomment after lab_vpc_net creates the peering.
     # "net-with-dev" = {
     #   create_peer = false
-    #   vpc = "development"
-
-    #   # requester = {
-    #   #   allow_remote_vpc_dns_resolution = true
-    #   # }
-    #   # accepter = {
-    #   #   allow_remote_vpc_dns_resolution = true
-    #   # }
-
+    #   vpc         = "development"
     #   auto_accept = true
-
-    #   peering_id = "pcx-0f867af7fee4963c1"
-
+    #   peering_id  = "pcx-0f867af7fee4963c1"
+    #
+    #   # Enable after the peering is active.
+    #   # accepter = { allow_remote_vpc_dns_resolution = true }
+    #
     #   vpc_routes = {
     #     "development" = {
     #       "private" = { destination_cidr_block = ["10.20.0.0/16"] }
@@ -250,13 +245,12 @@ module "base" {
     # }
   }
 
+  # Optional attachment to the TGW shared from lab_vpc_net.
+  # create_tgw = false looks up that gateway by amazon_side_asn (a list). Omit it to use the wrapper default ["64512"].
   # tgw_parameters = {
   #   "tgw-01" = {
   #     create_tgw = false
-  #     # amazon_side_asn                        = ["64512"]
-  #     # Revisar que esto me da problema si lo pongo como sfgrint o como lista
-
-  #     ## Managing TGW VPC Attachments
+  #
   #     vpc_attachments = {
   #       "production" = {
   #         subnet_ids = ["private-a", "private-b", "private-c"]

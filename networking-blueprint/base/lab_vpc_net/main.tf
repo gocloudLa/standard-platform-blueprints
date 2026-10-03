@@ -7,10 +7,10 @@
 module "base" {
 
   source  = "gocloudLa/standard-platform/aws//modules/base"
-  version = "1.0.0"
+  version = "1.10.0"
 
   /*----------------------------------------------------------------------*/
-  /* General Variables                                                    */
+  /* General Parameters                                                   */
   /*----------------------------------------------------------------------*/
 
   metadata = local.metadata
@@ -22,13 +22,14 @@ module "base" {
         "igw" = {}
       }
       nat_gateway = {
+        # Managed NAT alternative: kind = "aws" and default_route.nat_gateway = "natgw".
         # "natgw" = {
         #   subnet = "public-a"
-        #   kind   = "aws" # OPCION AWS
+        #   kind   = "aws"
         # }
         "natgw" = {
           subnet = "public-a"
-          kind   = "ec2" # OPCION EC2
+          kind   = "ec2"
           nat_parameters = {
             ec2_nat_gateway_attach_eip = true,
             ingress_with_cidr_blocks = [
@@ -125,26 +126,18 @@ module "base" {
   }
 
   peering_parameters = {
-    # # Cross Account ( Must apply after vpc creation)
+    # Optional cross-account peering. Uncomment after both VPCs exist.
+    # Accepter is the commented "net-with-dev" block in base/lab_vpc_ac1.
     # "net-with-dev" = {
     #   create_peer = true
-    #   vpc = "networking"
-
-    #   # requester = {
-    #   #   allow_remote_vpc_dns_resolution = true
-    #   # }
-    #   # # ~ requester {
-    #   # #     ~ allow_remote_vpc_dns_resolution = false -> true
-    #   # #   }
-    #   # # Does not have permission to modify the accepter side peering options
-    #   # # accepter = {
-    #   # #   allow_remote_vpc_dns_resolution = true
-    #   # # }
-
-    #   # Remote side
-    #   vpc_accepter_id = "vpc-06a4a7780e388980d" 
-    #   peer_owner_id   = "377730029539" # Account ID of remote
-
+    #   vpc         = "networking"
+    #
+    #   # Enable after the peering is active. The requester cannot set accepter DNS options.
+    #   # requester = { allow_remote_vpc_dns_resolution = true }
+    #
+    #   vpc_accepter_id = "vpc-06a4a7780e388980d"
+    #   peer_owner_id   = "377730029539"
+    #
     #   vpc_routes = {
     #     "networking" = {
     #       "private" = { destination_cidr_block = ["10.40.0.0/16"] }
@@ -157,22 +150,18 @@ module "base" {
 
   tgw_parameters = {
     "tgw-01" = {
-      # Variables to deploy transit gateway resource
-
       create_tgw = true
       # create_tgw_routes = false
 
-      # description                            = "Transit Gateway 01"
+      # description     = "Transit Gateway 01"
       amazon_side_asn = "64512"
 
-      ## Allow the sharing of the TGW using RAM
       share_tgw      = true
-      ram_principals = ["377730029539"]
+      ram_principals = ["377730029539"] # lab_vpc_ac1 account
       # ram_allow_external_principals = false
       # ram_name                      = null
       enable_auto_accept_shared_attachments = true
 
-      ## Managing TGW VPC Attachments
       vpc_attachments = {
         "networking" = {
           subnet_ids                                      = ["private-a", "private-b", "private-c"]
@@ -192,7 +181,7 @@ module "base" {
           ]
         }
       }
-      # ## Managing route association of route tables of attached VPC's
+      # Routes in this VPC toward the remote CIDR via the TGW.
       vpc_routes = {
         "networking" = {
           "private" = {
@@ -210,24 +199,22 @@ module "base" {
     }
   }
 
+  # Optional Site-to-Site VPN. Replace the customer gateway IP, CIDRs, and preshared keys before uncommenting.
   # vpn_parameters = {
   #   "vpn-vpc" = {
-  #     vpc = "networking" # Key into vpc_parameter (not vpc_name)
+  #     vpc = "networking" # Key in vpc_parameters
   #     virtual_private_gateway = {
   #     }
   #     customer_gateway = {
-  #       ip_address = "111.111.111.111" // Required, Public IP of client VPN 
+  #       ip_address = "111.111.111.111" # Public IP of the customer gateway
   #     }
-  #     # Tunnel resource settings; if omitted, null/default values apply
   #     vpn_connection = {
-  #       local_ipv4_network_cidr  = "10.50.0.0/16" # External site cidr block
-  #       remote_ipv4_network_cidr = "10.20.0.0/16" # AWS cidr block
-  #       # On-prem prefixes AWS routes toward the tunnel (VGW + propagation into the RTs listed in route_table_keys).
+  #       local_ipv4_network_cidr    = "10.50.0.0/16" # Customer site
+  #       remote_ipv4_network_cidr   = "10.20.0.0/16" # This VPC
   #       static_routes_only         = true
   #       static_routes_destinations = ["10.50.0.0/16"]
-  #       # Prefer keys from vpc_parameter.route_tables (same as wrapper-vpc output keys, e.g. "{vpc_key}-private").
-  #       route_table_keys               = ["networking-private", "networking-public"]
-  #       tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key //if the preshared key is stored in a parameter or secret
+  #       route_table_keys           = ["networking-private", "networking-public"]
+  #       tunnel1_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
   #       tunnel1_cloudwatch_log_enabled = true
   #       tunnel2_preshared_key          = "12345678" # local.secrets.vpn_preshared_key
   #       tunnel2_cloudwatch_log_enabled = true
@@ -249,15 +236,12 @@ module "base" {
   #     # transit_gateway_route_table_id = null
   #     virtual_private_gateway = null
   #     customer_gateway = {
-  #       ip_address = "222.222.101.101" // Required, Public IP of client VPN 
+  #       ip_address = "222.222.101.101" # Public IP of the customer gateway
   #     }
-  #     # Tunnel resource settings; if omitted, null/default values apply
   #     vpn_connection = {
-  #       # Customer side (this TGW VPN): 10.60.0.0/16. AWS side: 10.20.0.0/16 + 10.30.0.0/16 via TGW.
-  #       # aws_vpn_connection allows only one remote_ipv4_network_cidr → aggregate 10.16.0.0/12 (covers 10.16–10.31).
-  #       local_ipv4_network_cidr = "10.60.0.0/16"
-  #       # remote_ipv4_network_cidr = "0.0.0.0/0"
-  #       # On-prem prefix toward the VPN attachment in the TGW route table (one entry per CIDR).
+  #       # Customer side 10.60.0.0/16. aws_vpn_connection allows one remote CIDR; 10.16.0.0/12 covers 10.20.0.0/16 and 10.30.0.0/16.
+  #       local_ipv4_network_cidr        = "10.60.0.0/16"
+  #       # remote_ipv4_network_cidr     = "10.16.0.0/12"
   #       static_routes_only             = true
   #       static_routes_destinations     = ["10.60.0.0/16"]
   #       route_table_keys               = []

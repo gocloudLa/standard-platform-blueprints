@@ -21,7 +21,7 @@ Provisioning CLI: prefer OpenTofu (`tofu`) over Terraform for plan/apply/validat
 
 | Area | Controlled by YAML (then `gocloud generate`) |
 |------|-----------------------------------------------|
-| Standard Platform module pin | `infrastructure.version` (writes `version` in each `main.tf`; optional `source` + `source_ref` for Git modules) |
+| Standard Platform module pin | `infrastructure.version` (writes `version` in each `main.tf`; a project or workload `version` overrides that stack only; optional `source` + `source_ref` for Git modules) |
 | Accounts / envs | `infrastructure.environments.<key>` (+ `layers`, `projects`, `workloads`, optional `region` override) |
 | Domains → metadata | `infrastructure.metadata` → generated `metadata.tf` / `locals.metadata` |
 | State / IAM auth glue | `backend`, `providers` (scopes: global → env → project/workload per CLI docs) |
@@ -48,7 +48,7 @@ Deep behavior, overrides, `--force` risks, SSO/secrets/generate commands: `@` sk
 
 Stacks live under:
 
-- `organization/` (and `security/` if configured) — no `environment_dir` branch (unlike base/foundation/project/workload).
+- `organization/` (and `security/` or `backup/` if configured) — no `environment_dir` branch (unlike base/foundation/project/workload).
 - `base/<environment_dir>/`, `foundation/<environment_dir>/` — aligned with `gocloud.yaml` environments.
 - `project/<project_name>/<environment_dir>/`, `workload/<project_name>/<environment_dir>/` — `project_name` comes from `projects` / `workloads`; `environment_dir` is CLI-derived (YAML env key `dir_name` can override).
 

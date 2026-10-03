@@ -16,7 +16,7 @@ Override resolution documented in CLI README: broadly global → environment →
 
 When you redesign accounts, dirs, backends, SSO, Terragrunt, or bump platform source/version at generation time, `gocloud.yaml` should be edited first, then `gocloud generate`.
 
-Non-interactive use (CI, scripting, or unattended agents): `gocloud generate --force` — otherwise prompts block.
+Non-interactive use (CI, scripting, or unattended agents): `gocloud generate --force` — otherwise prompts block. To omit SSO `profile` lines when the runner already has credentials (instance role), add `--override 'infrastructure.providers.use_profiles: false' --override 'infrastructure.backend.use_profile: false'`. A global override does not replace a more specific value in `gocloud.yaml`.
 
 ## What the CLI regenerates vs what humans own
 
@@ -37,7 +37,7 @@ Edited by humans (day-to-day Standard Platform wiring):
 | Goal | Prefer |
 |------|--------|
 | Add/rename env, account, `projects`/`workloads` list | `gocloud.yaml` + `gocloud generate` |
-| Bump Standard Platform `version` for all stacks | `gocloud.yaml` `infrastructure.version` + `gocloud generate` (updates `main.tf` version lines) |
+| Bump Standard Platform `version` for all stacks | `gocloud.yaml` `infrastructure.version` + `gocloud generate` (updates `main.tf` version lines). A project or workload `version` overrides only that stack's `main.tf`. |
 | Switch Registry → Git `source + source_ref` | `gocloud.yaml` + `gocloud generate` |
 | SSO profiles / `.aws/config` | `gocloud sso setup` (per README) |
 | Edit secrets payloads | `gocloud secrets edit <layer-path>` |

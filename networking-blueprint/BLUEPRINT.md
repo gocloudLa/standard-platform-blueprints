@@ -1,21 +1,26 @@
 # Networking — Blueprint specifics
 
-This document describes **networking-specific** details for this blueprint: what it deploys, key parameters, and important operational considerations (TGW sharing, routing, VPN). For general project usage (SSO, Terragrunt, commands), see the blueprint’s [README.md](./README.md) (if present) and the repository root documentation.
+This document describes **networking-specific** details for this blueprint: what it deploys, key parameters, and important operational considerations (TGW sharing and routing). For general project usage (SSO, Terragrunt, commands), see the blueprint’s [README.md](./README.md) and the repository root documentation.
 
 ## 🎯 Blueprint overview
 
 This blueprint deploys a **network foundation** on the GoCloud Standard Platform (Base layer), focused on:
 
-- **VPC** with public/private subnets across AZs, IGW + NAT.
+- **VPC** with public/private subnets across AZs, IGW, and NAT.
 - **Gateway endpoints** for S3 and DynamoDB.
-- **Transit Gateway (TGW)** with VPC attachment(s) and optional **AWS RAM sharing** to another account in the same AWS Organization.
-- **Site-to-Site VPN** examples (to a VPC via VGW and to a TGW).
-- **Route53 zones** (public + private) and **Cloud Map namespaces** (private DNS) for service discovery.
+- **Transit Gateway** created in `lab_vpc_net`, shared with RAM, and attached to the `networking` VPC.
+- **Route53 zones** (public + private) and **Cloud Map namespaces** on `lab_vpc_net`.
 
-The blueprint is configured for a lab-style multi-account setup:
+Commented blocks in the same `main.tf` files are optional examples. Uncomment one to try it:
 
-- **`lv1` (Lab VPC Net)** in account `511192438786`: creates the VPC and TGW (owner account).
-- **`lv2` (Lab VPC Ac1)** in account `377730029539`: companion account for cross-account patterns (e.g., TGW sharing/attachments).
+- **Peering** in both stacks (same-account on `lab_vpc_ac1`, cross-account across both).
+- **TGW attachment** of `production` on `lab_vpc_ac1` (`create_tgw = false`).
+- **Site-to-Site VPN** on `lab_vpc_net` (`vpn-vpc` via a virtual private gateway, and `vpn-tgw`).
+
+The blueprint is a lab-style multi-account setup:
+
+- **`lv1` (Lab VPC Net)** in account `511192438786`: VPC `networking` (`10.20.0.0/16`) and the TGW owner.
+- **`lv2` (Lab VPC Ac1)** in account `377730029539`: VPCs `production` (`10.30.0.0/16`) and `development` (`10.40.0.0/16`). The TGW attachment stays commented until you want this account on the shared gateway.
 
 Environments/accounts are defined in `gocloud.yaml`.
 
@@ -44,10 +49,10 @@ Key components:
   - `public-{a,b,c}`
   - `private-{a,b,c}`
 - **Routing**:
-  - Public route table default route to **IGW**
-  - Private route table default route to **NAT Gateway**
+  - Public route table default route to the **IGW**
+  - Private route table default route to the **EC2 NAT** (`network_interface = "natgw"`). The managed NAT alternative (`kind = "aws"` and `nat_gateway = "natgw"`) is commented next to it.
 - **NAT**:
-  - Single NAT in `public-a` (cost-effective for labs; for production consider multi-AZ NAT).
+  - Single EC2 NAT in `public-a` (cost-effective for labs; for production consider one NAT per AZ).
 - **Network ACLs**:
   - Placeholder objects for `public` and `private` (rules empty by default).
 
@@ -58,11 +63,13 @@ Key components:
 
 These reduce NAT/IGW dependency for AWS API access to S3/DynamoDB traffic.
 
+`base/lab_vpc_ac1/main.tf` uses the same subnet layout on two VPCs. `production` uses a managed NAT (`kind = "aws"`). `development` uses an EC2 NAT, the same pattern as `lab_vpc_net`, and has no gateway endpoints.
+
 ### 🧷 Transit Gateway (TGW)
 
-This blueprint can create a TGW and attach the VPC to it.
+`lab_vpc_net` creates `tgw-01` and attaches the `networking` VPC. `lab_vpc_ac1` does not create a TGW; its attachment block is commented.
 
-Configured highlights (example `tgw-01`):
+Configured highlights:
 
 - **Amazon-side ASN** set (e.g. `64512`).
 - **Share TGW with RAM** (`share_tgw = true`) to principals in another account.
@@ -92,9 +99,16 @@ Terraform reference module this wrapper is based on:
 
 - `terraform-aws-modules/transit-gateway/aws`: [terraform-aws-transit-gateway](https://github.com/terraform-aws-modules/terraform-aws-transit-gateway)
 
+## 🔗 Optional peering
+
+Both `peering_parameters` blocks are commented.
+
+- **Same account** (`lab_vpc_ac1`, key `prd-with-dev`): peer `production` with `development`.
+- **Cross account**: `lab_vpc_net` creates the peering toward `development` (`10.40.0.0/16`, account `377730029539`). `lab_vpc_ac1` accepts it (`create_peer = false`) after that peering exists. Replace `vpc_accepter_id` and `peering_id` with the IDs from the first apply.
+
 ## 🔒 Site-to-Site VPN options
 
-This blueprint includes examples for:
+`vpn_parameters` in `base/lab_vpc_net/main.tf` is commented. The example includes:
 
 - **VPC VPN** (`vpn-vpc`): using a **Virtual Private Gateway (VGW)** attached to the VPC, plus a Customer Gateway with your on-prem public IP.
 - **TGW VPN** (`vpn-tgw`): attaching a VPN connection to the Transit Gateway instead of the VPC.
@@ -116,8 +130,8 @@ You must replace placeholder values like:
 
 The base layer creates:
 
-- **Public hosted zone**: `local.zone_public` (e.g. `democorp.cloud`)
-- **Private hosted zone**: `local.zone_private` (e.g. `democorp.private`) associated to the `networking` VPC
+- **Public hosted zone**: `local.zone_public` (`lv1.democorp.cloud`, because this environment is not `prd`)
+- **Private hosted zone**: `local.zone_private` (`lv1.democorp.private`) associated to the `networking` VPC
 
 ## 🧠 Cloud Map namespaces
 
@@ -132,7 +146,7 @@ Each namespace is associated to the `networking` VPC.
 
 - **TGW RAM sharing requires org enablement**: enabling RAM sharing with AWS Organizations is a console-side org setting. Even if “RAM exists”, shares can still fail until onboarding completes.
 - **Blackhole route**: the example TGW route blackholes `0.0.0.0/0`. Keep it only if you explicitly want “drop-all” behavior for that route table.
-- **Single NAT**: lab-friendly but is a single-AZ dependency. For production, use one NAT per AZ (or a more deliberate egress architecture).
+- **Single NAT**: `lab_vpc_net` and `development` use one EC2 NAT in `public-a`. That is a single-AZ dependency. For production, use one NAT per AZ.
 - **CIDR planning**: ensure VPC CIDRs and on-prem CIDRs do not overlap; TGW routing becomes ambiguous with overlaps.
 
 ## 📚 References

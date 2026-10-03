@@ -12,7 +12,7 @@ This repository contains the infrastructure configuration for **democorp.cloud**
 - **Client**: democorp.cloud
 - **Company**: dmc
 - **Region**: us-east-2
-- **Terraform Version**: 1.0.0
+- **Terraform Version**: 1.10.0
 
 ## 🌍 Environments Configuration
 
